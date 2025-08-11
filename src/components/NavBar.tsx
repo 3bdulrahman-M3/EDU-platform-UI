@@ -93,21 +93,23 @@ const NavBar = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navigationItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="flex items-center space-x-1 text-gray-900 hover:text-gray-400 transition-colors duration-200 group"
-                >
-                  <Icon className="w-4 h-4 group-hover:text-primary-400 transition-colors duration-200" />
-                  <span className="font-medium">{item.name}</span>
-                </Link>
-              );
-            })}
-          </div>
+          {isLoggedIn && (
+            <div className="hidden md:flex items-center space-x-8">
+              {navigationItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className="flex items-center space-x-1 text-gray-300 hover:text-white transition-colors duration-200 group"
+                  >
+                    <Icon className="w-4 h-4 group-hover:text-primary-400 transition-colors duration-200" />
+                    <span className="font-medium">{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
@@ -127,12 +129,20 @@ const NavBar = () => {
                 </button>
               </div>
             ) : (
-              <Link
-                href="/auth/login"
-                className="btn-primary text-sm px-6 py-2"
-              >
-                Get Started
-              </Link>
+              <div className="flex items-center space-x-3">
+                <Link
+                  href="/auth/login"
+                  className="text-gray-300 hover:text-white transition-colors duration-200"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/auth/register"
+                  className="btn-primary text-sm px-6 py-2"
+                >
+                  Get Started
+                </Link>
+              </div>
             )}
           </div>
 
@@ -153,20 +163,21 @@ const NavBar = () => {
         {isMenuOpen && (
           <div className="md:hidden">
             <div className="px-2 pt-2 pb-3 space-y-1 bg-secondary-800 rounded-lg mt-2">
-              {navigationItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className="flex items-center space-x-2 px-3 py-2 text-gray-300 hover:text-white hover:bg-secondary-700 rounded-md transition-colors duration-200"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{item.name}</span>
-                  </Link>
-                );
-              })}
+              {isLoggedIn &&
+                navigationItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className="flex items-center space-x-2 px-3 py-2 text-gray-300 hover:text-white hover:bg-secondary-700 rounded-md transition-colors duration-200"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{item.name}</span>
+                    </Link>
+                  );
+                })}
 
               <div className="border-t border-secondary-700 pt-2 mt-2">
                 {isLoggedIn ? (
@@ -186,13 +197,22 @@ const NavBar = () => {
                     </button>
                   </div>
                 ) : (
-                  <Link
-                    href="/auth/login"
-                    className="block px-3 py-2 text-primary-400 hover:text-primary-300 hover:bg-secondary-700 rounded-md transition-colors duration-200"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Get Started
-                  </Link>
+                  <div className="space-y-2">
+                    <Link
+                      href="/auth/login"
+                      className="block px-3 py-2 text-gray-300 hover:text-white hover:bg-secondary-700 rounded-md transition-colors duration-200"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Sign In
+                    </Link>
+                    <Link
+                      href="/auth/register"
+                      className="block px-3 py-2 text-primary-400 hover:text-primary-300 hover:bg-secondary-700 rounded-md transition-colors duration-200"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Get Started
+                    </Link>
+                  </div>
                 )}
               </div>
             </div>

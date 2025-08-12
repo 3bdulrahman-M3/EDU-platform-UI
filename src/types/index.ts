@@ -1,46 +1,58 @@
-{ name: "Home", href: "/", icon: FiHome },
-    { name: "Courses", href: "/courses", icon: FiBookOpen },
-    { name: "Mentors", href: "/mentors", icon: FiUsers },
-    { name: "Blog", href: "/blog", icon: FiFileText },
-    { name: "Contact", href: "/contact", icon: FiMail },
-  ];
-=======
-  const navigationItems = [
-    { name: "Home", href: "/", icon: FiHome },
-    { name: "Courses", href: "/courses", icon: FiBookOpen },
-    { name: "Quizzes", href: "/quizzes", icon: FiFileText },
-    { name: "About", href: "/about", icon: FiUsers },
-    { name: "Contact", href: "/contact", icon: FiMail },
-  ];
->>>>>>> REPLACE
-<<<<<<< SEARCH
-            <Link
-              href="/auth/login"
-              className="btn-primary text-sm px-6 py-2"
-            >
-              Get Started
-            </Link>
-=======
-            <Link
-              href="/auth/login"
-              className="btn-primary text-sm px-6 py-2"
-            >
-              Get Started
-            </Link>
->>>>>>> REPLACE
-<<<<<<< SEARCH
-                  <Link
-                    href="/auth/login"
-                    className="block px-3 py-2 text-primary-400 hover:text-primary-300 hover:bg-secondary-700 rounded-md transition-colors duration-200"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Get Started
-                  </Link>
-=======
-                  <Link
-                    href="/auth/login"
-                    className="block px-3 py-2 text-primary-400 hover:text-primary-300 hover:bg-secondary-700 rounded-md transition-colors duration-200"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Get Started
-                  </Link>
+// User types
+export interface User {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  username: string;
+  role: "instructor" | "student";
+  date_joined: string;
+}
+
+// Course types
+export interface Course {
+  id: number;
+  title: string;
+  description: string;
+  image?: string | null;
+}
+
+// Enrollment types
+export interface Enrollment {
+  id: number;
+  student: User;
+  course: Course;
+  enrolled_at: string;
+}
+
+// Auth types
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface RegisterCredentials {
+  email: string;
+  password: string;
+  confirm_password: string;
+  first_name: string;
+  last_name: string;
+  username: string;
+  role: "instructor" | "student";
+}
+
+export interface AuthResponse {
+  message: string;
+  user: User;
+  tokens: {
+    access: string;
+    refresh: string;
+  };
+}
+
+// Navigation types
+export interface NavigationItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+}

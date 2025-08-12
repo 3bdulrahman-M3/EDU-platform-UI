@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -12,38 +12,42 @@ import {
   FiUsers,
   FiFileText,
   FiMail,
+  FiLogOut,
 } from "react-icons/fi";
-import { isAuthenticated, getUser, authAPI } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { authAPI } from "@/lib/api";
 
 const NavBar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isModalClosing, setIsModalClosing] = useState(false);
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    const checkAuth = () => {
-      const authenticated = isAuthenticated();
-      const currentUser = getUser();
-      setIsLoggedIn(authenticated);
-      setUser(currentUser);
-      setIsLoading(false);
-    };
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
 
-    checkAuth();
-  }, []);
-
-  const handleLogout = async () => {
+  const handleLogoutConfirm = async () => {
     try {
+      setIsLoggingOut(true);
       await authAPI.logout();
-      setIsLoggedIn(false);
-      setUser(null);
+      logout();
+      setShowLogoutModal(false);
       router.push("/");
     } catch (error) {
       console.error("Logout error:", error);
+      setIsLoggingOut(false);
     }
+  };
+
+  const handleLogoutCancel = () => {
+    setIsModalClosing(true);
+    setTimeout(() => {
+      setShowLogoutModal(false);
+      setIsModalClosing(false);
+    }, 300);
   };
 
   const navigationItems = [
@@ -93,7 +97,7 @@ const NavBar = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          {isLoggedIn && (
+          {isAuthenticated && (
             <div className="hidden md:flex items-center space-x-8">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
@@ -113,7 +117,7 @@ const NavBar = () => {
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            {isLoggedIn ? (
+            {isAuthenticated ? (
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2 text-gray-300">
                   <FiUser className="w-4 h-4" />
@@ -122,7 +126,7 @@ const NavBar = () => {
                   </span>
                 </div>
                 <button
-                  onClick={handleLogout}
+                  onClick={handleLogoutClick}
                   className="btn-outline text-sm px-4 py-2"
                 >
                   Logout
@@ -163,7 +167,7 @@ const NavBar = () => {
         {isMenuOpen && (
           <div className="md:hidden">
             <div className="px-2 pt-2 pb-3 space-y-1 bg-secondary-800 rounded-lg mt-2">
-              {isLoggedIn &&
+              {isAuthenticated &&
                 navigationItems.map((item) => {
                   const Icon = item.icon;
                   return (
@@ -180,7 +184,7 @@ const NavBar = () => {
                 })}
 
               <div className="border-t border-secondary-700 pt-2 mt-2">
-                {isLoggedIn ? (
+                {isAuthenticated ? (
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2 px-3 py-2 text-gray-300">
                       <FiUser className="w-4 h-4" />
@@ -188,7 +192,7 @@ const NavBar = () => {
                     </div>
                     <button
                       onClick={() => {
-                        handleLogout();
+                        handleLogoutClick();
                         setIsMenuOpen(false);
                       }}
                       className="w-full text-left px-3 py-2 text-gray-300 hover:text-white hover:bg-secondary-700 rounded-md transition-colors duration-200"
@@ -219,6 +223,81 @@ const NavBar = () => {
           </div>
         )}
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className={`absolute inset-0 bg-gray-300 opacity-50 transition-opacity duration-300 ease-in-out ${
+              isModalClosing ? "bg-opacity-0" : "bg-opacity-50"
+            }`}
+            onClick={handleLogoutCancel}
+          />
+
+          {/* Modal */}
+          <div
+            className={`relative bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 transform transition-all duration-300 ease-in-out ${
+              isModalClosing ? "fade-out" : "animate-in fade-in-0 zoom-in-95"
+            }`}
+          >
+            {/* Close Button */}
+            <button
+              onClick={handleLogoutCancel}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+            >
+              <FiX className="w-6 h-6" />
+            </button>
+
+            {/* Modal Content */}
+            <div className="text-center">
+              {/* Icon */}
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-6">
+                <FiLogOut className="h-8 w-8 text-red-600" />
+              </div>
+
+              {/* Title */}
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                Confirm Logout
+              </h3>
+
+              {/* Message */}
+              <p className="text-gray-600 mb-8">
+                Are you sure you want to logout? You will need to sign in again
+                to access your account.
+              </p>
+
+              {/* Buttons */}
+              <div className="flex space-x-4">
+                <button
+                  onClick={handleLogoutCancel}
+                  disabled={isLoggingOut}
+                  className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 font-medium rounded-xl transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleLogoutConfirm}
+                  disabled={isLoggingOut}
+                  className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                >
+                  {isLoggingOut ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      <span>Logging out...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FiLogOut className="w-4 h-4" />
+                      <span>Logout</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   );
 };

@@ -12,23 +12,27 @@ import {
   FiArrowRight,
   FiUser,
   FiUserCheck,
+  FiUsers,
 } from "react-icons/fi";
-import { authAPI, setAuthToken, setUser } from "@/lib/api";
+import { authAPI } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    confirmPassword: "",
+    confirm_password: "",
     first_name: "",
     last_name: "",
     username: "",
+    role: "student" as "student" | "instructor",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { login } = useAuth();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -47,22 +51,23 @@ const RegisterPage = () => {
     if (
       !formData.email ||
       !formData.password ||
-      !formData.confirmPassword ||
+      !formData.confirm_password ||
       !formData.first_name ||
       !formData.last_name ||
-      !formData.username
+      !formData.username ||
+      !formData.role
     ) {
       setError("Please fill in all fields");
       return;
     }
 
-    if (formData.password !== formData.confirmPassword) {
+    if (formData.password !== formData.confirm_password) {
       setError("Passwords do not match");
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long");
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters long");
       return;
     }
 
@@ -73,24 +78,56 @@ const RegisterPage = () => {
       const response = await authAPI.register({
         email: formData.email,
         password: formData.password,
+        confirm_password: formData.confirm_password,
         first_name: formData.first_name,
         last_name: formData.last_name,
         username: formData.username,
+        role: formData.role,
       });
 
-      // Store auth data
-      setAuthToken(response.token);
-      setUser(response.user);
+      // Store auth data using context
+      login(response.user, response.tokens.access, response.tokens.refresh);
 
       // Redirect to home page
       router.push("/");
     } catch (err: any) {
       console.error("Registration error:", err);
-      setError(
-        err.response?.data?.message ||
-          err.response?.data?.error ||
-          "Registration failed. Please try again."
-      );
+
+      // Handle Django validation errors
+      if (err.response?.data) {
+        const errorData = err.response.data;
+
+        // Handle field-specific errors
+        if (typeof errorData === "object") {
+          const fieldErrors = Object.entries(errorData)
+            .filter(([key, value]) => Array.isArray(value) && value.length > 0)
+            .map(
+              ([key, value]) =>
+                `${key}: ${Array.isArray(value) ? value[0] : value}`
+            )
+            .join(", ");
+
+          if (fieldErrors) {
+            setError(fieldErrors);
+            return;
+          }
+        }
+
+        // Handle general error messages
+        if (errorData.message) {
+          setError(errorData.message);
+        } else if (errorData.error) {
+          setError(errorData.error);
+        } else if (typeof errorData === "string") {
+          setError(errorData);
+        } else {
+          setError(
+            "Registration failed. Please check your input and try again."
+          );
+        }
+      } else {
+        setError("Registration failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -205,6 +242,32 @@ const RegisterPage = () => {
               </div>
             </div>
 
+            {/* Role Selection */}
+            <div>
+              <label
+                htmlFor="role"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                I want to join as
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FiUsers className="h-5 w-5 text-gray-400" />
+                </div>
+                <select
+                  id="role"
+                  name="role"
+                  required
+                  value={formData.role}
+                  onChange={handleInputChange}
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors duration-200 bg-white"
+                >
+                  <option value="student">Student</option>
+                  <option value="instructor">Instructor</option>
+                </select>
+              </div>
+            </div>
+
             {/* Email */}
             <div>
               <label
@@ -271,7 +334,7 @@ const RegisterPage = () => {
             {/* Confirm Password */}
             <div>
               <label
-                htmlFor="confirmPassword"
+                htmlFor="confirm_password"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
                 Confirm Password
@@ -281,12 +344,12 @@ const RegisterPage = () => {
                   <FiLock className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  id="confirmPassword"
-                  name="confirmPassword"
+                  id="confirm_password"
+                  name="confirm_password"
                   type={showConfirmPassword ? "text" : "password"}
                   autoComplete="new-password"
                   required
-                  value={formData.confirmPassword}
+                  value={formData.confirm_password}
                   onChange={handleInputChange}
                   className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors duration-200"
                   placeholder="••••••••"
@@ -309,26 +372,29 @@ const RegisterPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-lg"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <div className="flex items-center justify-center space-x-3">
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                  <span className="text-lg text-gray-950">Creating account...</span>
+                </div>
               ) : (
-                <>
-                  <span>Create Account</span>
-                  <FiArrowRight className="w-4 h-4" />
-                </>
+                <div className="flex items-center justify-center space-x-3">
+                  <span className="text-lg text-gray-950">Create your account</span>
+                  <FiArrowRight className="w-5 h-5 text-gray-950" />
+                </div>
               )}
             </button>
           </form>
 
           {/* Login Link */}
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-700 font-medium">
               Already have an account?{" "}
               <Link
                 href="/auth/login"
-                className="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200"
+                className="font-semibold text-primary-700 hover:text-primary-800 transition-colors duration-200 hover:underline"
               >
                 Sign in here
               </Link>

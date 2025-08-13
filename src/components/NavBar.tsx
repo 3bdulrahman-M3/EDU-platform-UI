@@ -13,6 +13,8 @@ import {
   FiFileText,
   FiMail,
   FiLogOut,
+  FiPlus,
+  FiSearch,
 } from "react-icons/fi";
 import { useAuth } from "@/contexts/AuthContext";
 import { authAPI } from "@/lib/api";
@@ -50,13 +52,35 @@ const NavBar = () => {
     }, 300);
   };
 
-  const navigationItems = [
-    { name: "Home", href: "/", icon: FiHome },
-    { name: "Courses", href: "/courses", icon: FiBookOpen },
-    { name: "Mentors", href: "/mentors", icon: FiUsers },
-    { name: "Blog", href: "/blog", icon: FiFileText },
-    { name: "Contact", href: "/contact", icon: FiMail },
-  ];
+  // Role-based navigation items
+  const getNavigationItems = () => {
+    const baseItems = [
+      { name: "Home", href: "/", icon: FiHome },
+      { name: "Courses", href: "/courses", icon: FiBookOpen },
+    ];
+
+    if (user?.role === "instructor") {
+      return [
+        ...baseItems,
+        { name: "Dashboard", href: "/instructor", icon: FiUser },
+        {
+          name: "Create Course",
+          href: "/instructor/courses/create",
+          icon: FiPlus,
+        },
+      ];
+    } else if (user?.role === "student") {
+      return [
+        ...baseItems,
+        { name: "Dashboard", href: "/student", icon: FiUser },
+        { name: "My Courses", href: "/student", icon: FiBookOpen },
+      ];
+    }
+
+    return baseItems;
+  };
+
+  const navigationItems = getNavigationItems();
 
   if (isLoading) {
     return (
@@ -124,6 +148,9 @@ const NavBar = () => {
                   <span className="font-medium">
                     {user?.first_name || user?.username}
                   </span>
+                  <span className="text-xs bg-primary-600 text-white px-2 py-1 rounded-full">
+                    {user?.role}
+                  </span>
                 </div>
                 <button
                   onClick={handleLogoutClick}
@@ -189,6 +216,9 @@ const NavBar = () => {
                     <div className="flex items-center space-x-2 px-3 py-2 text-gray-300">
                       <FiUser className="w-4 h-4" />
                       <span>{user?.first_name || user?.username}</span>
+                      <span className="text-xs bg-primary-600 text-white px-2 py-1 rounded-full">
+                        {user?.role}
+                      </span>
                     </div>
                     <button
                       onClick={() => {

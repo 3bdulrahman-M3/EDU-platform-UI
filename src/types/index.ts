@@ -15,6 +15,11 @@ export interface Course {
   title: string;
   description: string;
   image?: string | null;
+  instructor?: User;
+  student_count?: number;
+  enrollment_count?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Enrollment types
@@ -23,6 +28,8 @@ export interface Enrollment {
   student: User;
   course: Course;
   enrolled_at: string;
+  withdrawn_at?: string | null;
+  is_active?: boolean;
 }
 
 // Auth types

@@ -34,7 +34,9 @@ const RegisterPage = () => {
   const router = useRouter();
   const { login } = useAuth();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -75,6 +77,12 @@ const RegisterPage = () => {
       setLoading(true);
       setError(null);
 
+      console.log("=== REGISTRATION DEBUG ===");
+      console.log("Form data being sent:", formData);
+      console.log("Role value:", formData.role);
+      console.log("Role type:", typeof formData.role);
+      console.log("==========================");
+
       const response = await authAPI.register({
         email: formData.email,
         password: formData.password,
@@ -85,8 +93,19 @@ const RegisterPage = () => {
         role: formData.role,
       });
 
+      console.log("=== REGISTRATION RESPONSE ===");
+      console.log("Response:", response);
+      console.log("Response data:", response.data);
+      console.log("User data:", response.data?.user);
+      console.log("User role:", response.data?.user?.role);
+      console.log("=============================");
+
       // Store auth data using context
-      login(response.user, response.tokens.access, response.tokens.refresh);
+      login(
+        response.data.user,
+        response.data.tokens.access,
+        response.data.tokens.refresh
+      );
 
       // Redirect to home page
       router.push("/");
@@ -377,11 +396,15 @@ const RegisterPage = () => {
               {loading ? (
                 <div className="flex items-center justify-center space-x-3">
                   <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                  <span className="text-lg text-gray-950">Creating account...</span>
+                  <span className="text-lg text-gray-950">
+                    Creating account...
+                  </span>
                 </div>
               ) : (
                 <div className="flex items-center justify-center space-x-3">
-                  <span className="text-lg text-gray-950">Create your account</span>
+                  <span className="text-lg text-gray-950">
+                    Create your account
+                  </span>
                   <FiArrowRight className="w-5 h-5 text-gray-950" />
                 </div>
               )}

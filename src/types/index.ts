@@ -7,6 +7,8 @@ export interface User {
   username: string;
   role: "instructor" | "student";
   date_joined: string;
+  google_id?: string;
+  picture?: string;
 }
 
 // Course types
@@ -55,6 +57,32 @@ export interface AuthResponse {
     access: string;
     refresh: string;
   };
+}
+
+// Google Auth types
+export interface GoogleAuthResponse {
+  user: User;
+  tokens: {
+    access: string;
+    refresh: string;
+  };
+  isNewUser?: boolean;
+}
+
+export interface GoogleUserData {
+  email: string;
+  firstName: string;
+  lastName: string;
+  picture?: string;
+  googleId: string;
+}
+
+export interface GoogleRegistrationData {
+  email: string;
+  first_name: string;
+  last_name: string;
+  google_id: string;
+  role: string;
 }
 
 // Navigation types

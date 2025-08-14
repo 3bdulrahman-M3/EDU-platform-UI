@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { GoogleLogin } from "@react-oauth/google";
 import {
   FiMail,
   FiLock,
@@ -16,6 +17,7 @@ import {
 } from "react-icons/fi";
 import { authAPI } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { handleGoogleLogin, testGoogleToken } from "@/lib/googleAuth";
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -33,6 +35,143 @@ const RegisterPage = () => {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { login } = useAuth();
+
+  // Handle Google registration
+  const handleGoogleSuccess = async (credential: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log("=== GOOGLE REGISTRATION DEBUG ===");
+      console.log("Google credential received");
+      console.log("Credential length:", credential.length);
+      console.log(
+        "Environment check - GOOGLE_CLIENT_ID:",
+        process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? "Set" : "NOT SET"
+      );
+      console.log(
+        "Environment check - API_URL:",
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
+      );
+
+      // Test the Google token first
+      const tokenTest = testGoogleToken(credential);
+      if (!tokenTest.isValid) {
+        throw new Error(`Invalid Google token: ${tokenTest.error}`);
+      }
+
+      // First, try to authenticate with Google
+      const response = await authAPI.googleAuth(credential);
+
+      console.log("=== GOOGLE AUTH RESPONSE DEBUG ===");
+      console.log("Full response:", response);
+      console.log("Response data:", response.data);
+      console.log("Is new user:", response.data.isNewUser);
+      console.log("Is new user type:", typeof response.data.isNewUser);
+      console.log("User data:", response.data.user);
+      console.log("User role:", response.data.user?.role);
+      console.log("Response keys:", Object.keys(response.data));
+      console.log("==================================");
+
+      if (response.data.isNewUser === true) {
+        // New user - redirect to role selection
+        console.log(
+          "=== NEW USER DETECTED - REDIRECTING TO ROLE SELECTION ==="
+        );
+        try {
+          const userData = await handleGoogleLogin(credential);
+          console.log("User data for role selection:", userData);
+          const userDataParam = encodeURIComponent(JSON.stringify(userData));
+          console.log("Encoded user data param:", userDataParam);
+          console.log(
+            "Redirecting to:",
+            `/auth/google-role-selection?userData=${userDataParam}`
+          );
+          router.push(`/auth/google-role-selection?userData=${userDataParam}`);
+        } catch (redirectError: unknown) {
+          console.error(
+            "Error during redirect to role selection:",
+            redirectError
+          );
+          setError("Error redirecting to role selection. Please try again.");
+        }
+      } else {
+        // Existing user - check if they have a role
+        console.log("=== EXISTING USER DETECTED - CHECKING ROLE ===");
+        const user = response.data.user;
+        console.log("User data:", user);
+        console.log("User role:", user.role);
+
+        if (
+          !user.role ||
+          user.role === "" ||
+          user.role === null ||
+          user.role === undefined
+        ) {
+          // User exists but has no role - redirect to role selection
+          console.log(
+            "User exists but has no role, redirecting to role selection"
+          );
+          try {
+            const userData = await handleGoogleLogin(credential);
+            const userDataParam = encodeURIComponent(JSON.stringify(userData));
+            router.push(
+              `/auth/google-role-selection?userData=${userDataParam}&existingUser=true`
+            );
+          } catch (redirectError: unknown) {
+            console.error(
+              "Error during redirect to role selection:",
+              redirectError
+            );
+            setError("Error redirecting to role selection. Please try again.");
+          }
+        } else {
+          // User exists and has a role - login directly
+          console.log("User exists and has role, logging in directly");
+          try {
+            // Store auth data using context
+            login(
+              response.data.user,
+              response.data.tokens.access,
+              response.data.tokens.refresh
+            );
+
+            // Redirect directly to the appropriate dashboard based on role
+            setTimeout(() => {
+              if (user.role === "instructor") {
+                router.push("/instructor");
+              } else if (user.role === "student") {
+                router.push("/student");
+              } else {
+                router.push("/");
+              }
+            }, 100);
+          } catch (loginError: unknown) {
+            console.error("Error during login:", loginError);
+            setError("Error logging in. Please try again.");
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error("Google registration error:", err);
+      console.error("Error details:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        url: err.config?.url,
+      });
+
+      // Show the specific error message from the API
+      setError(err.message || "Google registration failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError("Google registration failed. Please try again.");
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -410,6 +549,44 @@ const RegisterPage = () => {
               )}
             </button>
           </form>
+
+          {/* Divider */}
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Google Registration Button */}
+          <div className="mt-6">
+            <GoogleLogin
+              onSuccess={(credentialResponse) => {
+                console.log("Google login success:", credentialResponse);
+                if (credentialResponse.credential) {
+                  handleGoogleSuccess(credentialResponse.credential);
+                }
+              }}
+              onError={() => {
+                console.log("Google login error occurred");
+                handleGoogleError();
+              }}
+              useOneTap={false}
+              theme="outline"
+              size="large"
+              text="signup_with"
+              shape="rectangular"
+              width="100%"
+              cancel_on_tap_outside={true}
+              context="signup"
+            />
+          </div>
 
           {/* Login Link */}
           <div className="mt-6 text-center">

@@ -15,6 +15,7 @@ import {
   setAuthToken,
   setRefreshToken,
 } from "@/lib/api";
+import { secureStorage } from "@/lib/security";
 
 interface AuthContextType {
   user: User | null;
@@ -66,25 +67,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = (userData: User, token: string, refreshToken?: string) => {
-    setAuthToken(token);
-    if (refreshToken) {
-      setRefreshToken(refreshToken);
-    }
-    setUserStorage(userData);
+    try {
+      // Store in localStorage first
+      setAuthToken(token);
+      if (refreshToken) {
+        setRefreshToken(refreshToken);
+      }
+      setUserStorage(userData);
 
-    setUser(userData);
-    setIsAuth(true);
+      // Update state
+      setUser(userData);
+      setIsAuth(true);
+
+      console.log("Auth state updated:", { user: userData, isAuth: true });
+    } catch (error) {
+      console.error("Error during login:", error);
+      throw error;
+    }
   };
 
   const logout = () => {
-    // Clear from localStorage
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
+    try {
+      // Clear from secureStorage (consistent with API)
+      secureStorage.removeItem("authToken");
+      secureStorage.removeItem("refreshToken");
+      secureStorage.removeItem("user");
 
-    // Clear from state
-    setUser(null);
-    setIsAuth(false);
+      // Clear from state
+      setUser(null);
+      setIsAuth(false);
+      
+      console.log("Auth state cleared");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      // Even if there's an error, try to clear state
+      setUser(null);
+      setIsAuth(false);
+    }
   };
 
   const updateUser = (userData: User) => {

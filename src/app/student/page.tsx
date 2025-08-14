@@ -82,14 +82,6 @@ const StudentDashboard = () => {
     <RoleBasedRoute allowedRoles={["student"]}>
       <div className="min-h-screen bg-gray-50">
         <div className="container-custom py-8">
-          {/* Debug Info - Remove in production */}
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>Debug:</strong> You are logged in as a{" "}
-              <strong>Student</strong> ({user?.email})
-            </p>
-          </div>
-
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
             <div>

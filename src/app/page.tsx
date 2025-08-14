@@ -26,21 +26,24 @@ const HomePage = () => {
       console.log("Is authenticated:", isAuthenticated);
       console.log("==========================");
 
-      setRedirecting(true);
+      // Only redirect if user has a valid role
+      if (user.role === "instructor" || user.role === "student") {
+        setRedirecting(true);
 
-      // Add a small delay to ensure all data is loaded
-      setTimeout(() => {
-        if (user.role === "instructor") {
-          console.log("Redirecting to instructor dashboard...");
-          router.push("/instructor");
-        } else if (user.role === "student") {
-          console.log("Redirecting to student dashboard...");
-          router.push("/student");
-        } else {
-          console.warn("Unknown role, staying on home page");
-          setRedirecting(false);
-        }
-      }, 500);
+        // Add a small delay to ensure all data is loaded
+        setTimeout(() => {
+          if (user.role === "instructor") {
+            console.log("Redirecting to instructor dashboard...");
+            router.push("/instructor");
+          } else if (user.role === "student") {
+            console.log("Redirecting to student dashboard...");
+            router.push("/student");
+          }
+        }, 500);
+      } else {
+        console.warn("User has no role or invalid role, staying on home page");
+        setRedirecting(false);
+      }
     }
   }, [isAuthenticated, user, isLoading, router]);
 

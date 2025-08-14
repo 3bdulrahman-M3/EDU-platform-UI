@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { GoogleLogin } from "@react-oauth/google";
 import {
   FiMail,
   FiLock,
@@ -13,6 +14,7 @@ import {
 } from "react-icons/fi";
 import { authAPI } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { handleGoogleLogin } from "@/lib/googleAuth";
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -33,6 +35,82 @@ const LoginPage = () => {
     }
   }, [isAuthenticated, router]);
 
+  // Handle Google login
+  const handleGoogleSuccess = async (credential: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log("=== GOOGLE LOGIN DEBUG ===");
+      console.log("Google credential received");
+
+      // First, try to authenticate with Google
+      const response = await authAPI.googleAuth(credential);
+
+      console.log("Google auth response:", response);
+
+      if (response.data.isNewUser) {
+        // New user - redirect to role selection
+        const userData = await handleGoogleLogin(credential);
+        const userDataParam = encodeURIComponent(JSON.stringify(userData));
+        router.push(`/auth/google-role-selection?userData=${userDataParam}`);
+      } else {
+        // Existing user - check if they have a role
+        const user = response.data.user;
+        console.log("Existing user data:", user);
+        console.log("User role:", user.role);
+
+        if (
+          !user.role ||
+          user.role === "" ||
+          user.role === null ||
+          user.role === undefined
+        ) {
+          // User exists but has no role - redirect to role selection
+          console.log(
+            "User exists but has no role, redirecting to role selection"
+          );
+          const userData = await handleGoogleLogin(credential);
+          const userDataParam = encodeURIComponent(JSON.stringify(userData));
+          router.push(
+            `/auth/google-role-selection?userData=${userDataParam}&existingUser=true`
+          );
+        } else {
+          // User exists and has a role - login directly
+          console.log("User exists and has role, logging in directly");
+
+          // Store auth data using context
+          login(
+            response.data.user,
+            response.data.tokens.access,
+            response.data.tokens.refresh
+          );
+
+          // Redirect directly to the appropriate dashboard based on role
+          setTimeout(() => {
+            if (user.role === "instructor") {
+              router.push("/instructor");
+            } else if (user.role === "student") {
+              router.push("/student");
+            } else {
+              router.push("/");
+            }
+          }, 100);
+        }
+      }
+    } catch (err: unknown) {
+      console.error("Google login error:", err);
+      setError("Google login failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    console.log("Google login error occurred");
+    setError("Google login failed. Please try again.");
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -41,30 +119,6 @@ const LoginPage = () => {
     }));
     // Clear error when user starts typing
     if (error) setError(null);
-  };
-
-  // Test API connection
-  const testAPIConnection = async () => {
-    try {
-      console.log("Testing API connection...");
-      const response = await fetch("http://localhost:8000/api/");
-      console.log("API test response:", response.status, response.statusText);
-      if (response.ok) {
-        const data = await response.json();
-        console.log("API test data:", data);
-      }
-    } catch (err) {
-      console.error("API test error:", err);
-    }
-  };
-
-  // Debug authentication state
-  const debugAuthState = () => {
-    console.log("=== AUTH DEBUG ===");
-    console.log("isAuthenticated:", isAuthenticated);
-    console.log("localStorage authToken:", localStorage.getItem("authToken"));
-    console.log("localStorage user:", localStorage.getItem("user"));
-    console.log("==================");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,14 +160,6 @@ const LoginPage = () => {
       ) {
         // Django format: { tokens: { access: "..." }, user: {...} }
         token = response.data.tokens.access;
-        userData = response.data.user;
-      } else if (response.data?.token && response.data.user) {
-        // Alternative format: { token: "...", user: {...} }
-        token = response.data.token;
-        userData = response.data.user;
-      } else if (response.data?.access && response.data.user) {
-        // Alternative format: { access: "...", user: {...} }
-        token = response.data.access;
         userData = response.data.user;
       } else {
         console.error("Unexpected response format:", response.data);
@@ -169,12 +215,14 @@ const LoginPage = () => {
       console.error("Login error:", err);
 
       // Handle Django validation errors
-      if ((err as any).response?.data) {
-        const errorData = (err as any).response.data;
+      if (err && typeof err === "object" && "response" in err) {
+        const errorResponse = err as { response?: { data?: unknown } };
+        const errorData = errorResponse.response?.data;
 
         // Handle field-specific errors
-        if (typeof errorData === "object") {
-          const fieldErrors = Object.entries(errorData)
+        if (errorData && typeof errorData === "object" && errorData !== null) {
+          const errorObj = errorData as Record<string, unknown>;
+          const fieldErrors = Object.entries(errorObj)
             .filter(([key, value]) => Array.isArray(value) && value.length > 0)
             .map(
               ([key, value]) =>
@@ -189,16 +237,21 @@ const LoginPage = () => {
         }
 
         // Handle general error messages
-        if (errorData.message) {
-          setError(errorData.message);
-        } else if (errorData.error) {
-          setError(errorData.error);
+        if (errorData && typeof errorData === "object" && errorData !== null) {
+          const errorObj = errorData as Record<string, unknown>;
+          if (errorObj.message) {
+            setError(String(errorObj.message));
+          } else if (errorObj.error) {
+            setError(String(errorObj.error));
+          } else {
+            setError(
+              "Login failed. Please check your credentials and try again."
+            );
+          }
         } else if (typeof errorData === "string") {
           setError(errorData);
         } else {
-          setError(
-            "Login failed. Please check your credentials and try again."
-          );
+          setError("Login failed. Please try again.");
         }
       } else {
         setError("Login failed. Please try again.");
@@ -231,22 +284,6 @@ const LoginPage = () => {
           <p className="text-gray-600">
             Sign in to your account to continue learning
           </p>
-        </div>
-
-        {/* Debug Buttons */}
-        <div className="text-center space-x-4">
-          <button
-            onClick={testAPIConnection}
-            className="text-sm text-gray-500 hover:text-gray-700 underline"
-          >
-            Test API Connection
-          </button>
-          <button
-            onClick={debugAuthState}
-            className="text-sm text-gray-500 hover:text-gray-700 underline"
-          >
-            Debug Auth State
-          </button>
         </div>
 
         {/* Login Form */}
@@ -398,35 +435,26 @@ const LoginPage = () => {
             </div>
           </div>
 
-          {/* Social Login Buttons */}
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <button className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                />
-              </svg>
-              <span className="ml-2">Google</span>
-            </button>
-            <button className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z" />
-              </svg>
-              <span className="ml-2">Twitter</span>
-            </button>
+          {/* Google Login Button */}
+          <div className="mt-6">
+            <GoogleLogin
+              onSuccess={(credentialResponse) => {
+                if (credentialResponse.credential) {
+                  handleGoogleSuccess(credentialResponse.credential);
+                }
+              }}
+              onError={() => {
+                console.log("Google login error occurred");
+                handleGoogleError();
+              }}
+              useOneTap={false}
+              theme="outline"
+              size="large"
+              text="continue_with"
+              shape="rectangular"
+              width="100%"
+              cancel_on_tap_outside={true}
+            />
           </div>
         </div>
 

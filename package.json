@@ -9,7 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@google-cloud/local-auth": "^3.0.1",
+    "@react-oauth/google": "^0.12.2",
     "axios": "^1.11.0",
+    "googleapis": "^156.0.0",
     "lucide-react": "^0.539.0",
     "next": "15.4.6",
     "postcss": "^8.5.6",

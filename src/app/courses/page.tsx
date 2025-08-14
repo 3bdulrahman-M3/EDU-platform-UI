@@ -7,8 +7,6 @@ import { Course, Enrollment } from "@/types";
 import CourseCard from "@/components/CourseCard";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
-import DebugUserInfo from "@/components/DebugUserInfo";
-import RegistrationTest from "@/components/RegistrationTest";
 
 const CoursesPage = () => {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -114,12 +112,6 @@ const CoursesPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container-custom py-8">
-        {/* Debug User Info */}
-        <DebugUserInfo />
-
-        {/* Registration Test */}
-        <RegistrationTest />
-
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
           <div>
@@ -169,20 +161,6 @@ const CoursesPage = () => {
             </button>
           </div>
         )}
-
-        {/* Debug Info */}
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-800">
-            <strong>Debug Info:</strong>
-            <br />- Total courses: {courses.length}
-            <br />- Filtered courses: {filteredCourses.length}
-            <br />- User role: {user?.role || "Not logged in"}
-            <br />- User email: {user?.email || "Not available"}
-            <br />- Enrolled courses: {enrolledCourses.length}
-            <br />- API Base URL:{" "}
-            {process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}
-          </p>
-        </div>
 
         {/* Results Count */}
         {filteredCourses.length > 0 && (

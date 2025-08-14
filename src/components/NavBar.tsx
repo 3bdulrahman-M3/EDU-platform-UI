@@ -34,12 +34,25 @@ const NavBar = () => {
   const handleLogoutConfirm = async () => {
     try {
       setIsLoggingOut(true);
+
+      // Call API logout to invalidate tokens on backend
       await authAPI.logout();
+
+      // Clear local auth state
+      logout();
+
+      // Close modal and redirect
+      setShowLogoutModal(false);
+      router.push("/");
+
+      console.log("Logout completed successfully");
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Even if API logout fails, clear local state for security
       logout();
       setShowLogoutModal(false);
       router.push("/");
-    } catch (error) {
-      console.error("Logout error:", error);
+    } finally {
       setIsLoggingOut(false);
     }
   };

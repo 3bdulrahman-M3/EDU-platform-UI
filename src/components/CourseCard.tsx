@@ -13,6 +13,7 @@ import {
 import { Course, User } from "@/types";
 import { studentAPI } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { getCourseImageUrl } from "@/lib/cloudinary";
 
 interface CourseCardProps {
   course: Course;
@@ -139,10 +140,11 @@ const CourseCard = ({
         <div className="aspect-video bg-gradient-to-br from-primary-100 to-accent-100 relative">
           {course.image ? (
             <Image
-              src={course.image}
+              src={getCourseImageUrl(course.image, 400, 225)}
               alt={course.title}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-300"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">

@@ -86,25 +86,37 @@ const LoginPage = () => {
         password: formData.password,
       });
 
-      console.log("Login successful:", response);
+      console.log("=== LOGIN RESPONSE DEBUG ===");
+      console.log("Full response:", response);
+      console.log("Response data:", response.data);
+      console.log("Response keys:", Object.keys(response.data));
+      console.log("User data in response:", response.data?.user);
+      console.log("User role in response:", response.data?.user?.role);
+      console.log("User role type:", typeof response.data?.user?.role);
+      console.log("User role value:", response.data?.user?.role);
+      console.log("===========================");
 
       // Handle Django response format
       let token, userData;
 
-      if (response.tokens && response.tokens.access && response.user) {
+      if (
+        response.data?.tokens &&
+        response.data.tokens.access &&
+        response.data.user
+      ) {
         // Django format: { tokens: { access: "..." }, user: {...} }
-        token = response.tokens.access;
-        userData = response.user;
-      } else if (response.token && response.user) {
+        token = response.data.tokens.access;
+        userData = response.data.user;
+      } else if (response.data?.token && response.data.user) {
         // Alternative format: { token: "...", user: {...} }
-        token = response.token;
-        userData = response.user;
-      } else if (response.access && response.user) {
+        token = response.data.token;
+        userData = response.data.user;
+      } else if (response.data?.access && response.data.user) {
         // Alternative format: { access: "...", user: {...} }
-        token = response.access;
-        userData = response.user;
+        token = response.data.access;
+        userData = response.data.user;
       } else {
-        console.error("Unexpected response format:", response);
+        console.error("Unexpected response format:", response.data);
         setError("Unexpected login response format. Please try again.");
         return;
       }
@@ -115,8 +127,35 @@ const LoginPage = () => {
         return;
       }
 
+      // Check if user data has role field
+      console.log("=== ROLE DETECTION DEBUG ===");
+      console.log("User data before role check:", userData);
+      console.log("Role field exists:", "role" in userData);
+      console.log("Role field value:", userData.role);
+      console.log("Role field type:", typeof userData.role);
+      console.log("===========================");
+
+      if (!userData.role) {
+        console.warn("⚠️ WARNING: User data missing role field!");
+        console.warn("User data received:", userData);
+
+        // Try to infer role from email or other fields
+        // You can customize this logic based on your backend
+        if (userData.email && userData.email.includes("instructor")) {
+          userData.role = "instructor";
+          console.log("🔧 Auto-assigned role as instructor based on email");
+        } else {
+          userData.role = "student"; // Default fallback
+          console.log("🔧 Auto-assigned role as student (default)");
+        }
+      } else {
+        console.log("✅ Role field found:", userData.role);
+      }
+
+      console.log("Final user data to be stored:", userData);
+
       // Store auth data using context
-      login(userData, token, response.tokens?.refresh);
+      login(userData, token, response.data?.tokens?.refresh);
 
       console.log("Auth data stored, redirecting...");
       console.log("Token:", token);
@@ -336,7 +375,9 @@ const LoginPage = () => {
                 </div>
               ) : (
                 <div className="flex items-center justify-center space-x-3">
-                  <span className="text-lg text-gray-950">Sign in to your account</span>
+                  <span className="text-lg text-gray-950">
+                    Sign in to your account
+                  </span>
                   <FiArrowRight className="w-5 h-5 text-gray-950" />
                 </div>
               )}

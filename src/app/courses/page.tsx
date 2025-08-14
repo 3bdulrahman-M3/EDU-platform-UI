@@ -18,7 +18,6 @@ const CoursesPage = () => {
 
           <CourseList
             showSearch={true}
-            showFilters={true}
             title="All Courses"
             subtitle="Find the perfect course for your learning journey"
           />

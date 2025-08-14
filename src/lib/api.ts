@@ -1,4 +1,12 @@
 import axios from "axios";
+import {
+  User,
+  Course,
+  Enrollment,
+  LoginCredentials,
+  RegisterCredentials,
+  AuthResponse,
+} from "@/types";
 
 // API Configuration
 const API_BASE_URL =
@@ -30,7 +38,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Don't redirect on auth endpoints (login/register) as these might fail due to invalid credentials
+    const isAuthEndpoint =
+      error.config?.url?.includes("/auth/login") ||
+      error.config?.url?.includes("/auth/register");
+
+    if (error.response?.status === 401 && !isAuthEndpoint) {
       localStorage.removeItem("authToken");
       localStorage.removeItem("user");
       window.location.href = "/auth/login";
@@ -39,51 +52,18 @@ api.interceptors.response.use(
   }
 );
 
-// Types
-export interface User {
-  id: number;
-  email: string;
-  first_name: string;
-  last_name: string;
-  username: string;
-}
-
-export interface Course {
-  id: number;
-  title: string;
-  description: string;
-  short_description: string;
-  instructor: string;
-  category: string;
-  level: "beginner" | "intermediate" | "advanced";
-  duration: number; // in hours
-  price: number;
-  image_url: string;
-  rating: number;
-  enrolled_students: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-export interface AuthResponse {
-  token: string;
-  user: User;
-}
+// Types are now imported from @/types
 
 // Auth API functions
 export const authAPI = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     const response = await api.post("/auth/login/", credentials);
+    console.log("Raw login response:", response.data);
     return response.data;
   },
 
   logout: async (): Promise<void> => {
-    await api.post("/auth/logout/");
+   
     localStorage.removeItem("authToken");
     localStorage.removeItem("user");
   },
@@ -93,13 +73,7 @@ export const authAPI = {
     return response.data;
   },
 
-  register: async (userData: {
-    email: string;
-    password: string;
-    first_name: string;
-    last_name: string;
-    username: string;
-  }): Promise<AuthResponse> => {
+  register: async (userData: RegisterCredentials): Promise<AuthResponse> => {
     const response = await api.post("/auth/register/", userData);
     return response.data;
   },
@@ -117,35 +91,38 @@ export const coursesAPI = {
     return response.data;
   },
 
-  getCoursesByCategory: async (category: string): Promise<Course[]> => {
-    const response = await api.get(`/courses/?category=${category}`);
-    return response.data;
-  },
-
   searchCourses: async (query: string): Promise<Course[]> => {
     const response = await api.get(`/courses/?search=${query}`);
     return response.data;
   },
+};
 
-  getPopularCourses: async (limit: number = 6): Promise<Course[]> => {
-    const response = await api.get(
-      `/courses/?ordering=-enrolled_students&limit=${limit}`
-    );
+// Enrollment API functions
+export const enrollmentAPI = {
+  getEnrollments: async (): Promise<Enrollment[]> => {
+    const response = await api.get("/enrollments/");
     return response.data;
+  },
+
+  enrollInCourse: async (courseId: number): Promise<Enrollment> => {
+    const response = await api.post("/enrollments/", { course: courseId });
+    return response.data;
+  },
+
+  unenrollFromCourse: async (enrollmentId: number): Promise<void> => {
+    await api.delete(`/enrollments/${enrollmentId}/`);
   },
 };
 
-// Categories API functions
-export const categoriesAPI = {
-  getAllCategories: async (): Promise<string[]> => {
-    const response = await api.get("/categories/");
-    return response.data;
-  },
-};
+// Remove categories API since it's not in your Django models
 
 // Utility functions
 export const setAuthToken = (token: string) => {
   localStorage.setItem("authToken", token);
+};
+
+export const setRefreshToken = (refreshToken: string) => {
+  localStorage.setItem("refreshToken", refreshToken);
 };
 
 export const getAuthToken = (): string | null => {

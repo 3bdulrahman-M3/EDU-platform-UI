@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -11,7 +11,8 @@ import {
   FiBookOpen,
   FiArrowRight,
 } from "react-icons/fi";
-import { authAPI, setAuthToken, setUser } from "@/lib/api";
+import { authAPI } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -22,6 +23,15 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { isAuthenticated, login } = useAuth();
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log("User already authenticated, redirecting to home...");
+      router.push("/");
+    }
+  }, [isAuthenticated, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -31,6 +41,30 @@ const LoginPage = () => {
     }));
     // Clear error when user starts typing
     if (error) setError(null);
+  };
+
+  // Test API connection
+  const testAPIConnection = async () => {
+    try {
+      console.log("Testing API connection...");
+      const response = await fetch("http://localhost:8000/api/");
+      console.log("API test response:", response.status, response.statusText);
+      if (response.ok) {
+        const data = await response.json();
+        console.log("API test data:", data);
+      }
+    } catch (err) {
+      console.error("API test error:", err);
+    }
+  };
+
+  // Debug authentication state
+  const debugAuthState = () => {
+    console.log("=== AUTH DEBUG ===");
+    console.log("isAuthenticated:", isAuthenticated);
+    console.log("localStorage authToken:", localStorage.getItem("authToken"));
+    console.log("localStorage user:", localStorage.getItem("user"));
+    console.log("==================");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,24 +79,91 @@ const LoginPage = () => {
       setLoading(true);
       setError(null);
 
+      console.log("Attempting login with:", { email: formData.email });
+
       const response = await authAPI.login({
         email: formData.email,
         password: formData.password,
       });
 
-      // Store auth data
-      setAuthToken(response.token);
-      setUser(response.user);
+      console.log("Login successful:", response);
 
-      // Redirect to home page
-      router.push("/");
-    } catch (err: any) {
+      // Handle Django response format
+      let token, userData;
+
+      if (response.tokens && response.tokens.access && response.user) {
+        // Django format: { tokens: { access: "..." }, user: {...} }
+        token = response.tokens.access;
+        userData = response.user;
+      } else if (response.token && response.user) {
+        // Alternative format: { token: "...", user: {...} }
+        token = response.token;
+        userData = response.user;
+      } else if (response.access && response.user) {
+        // Alternative format: { access: "...", user: {...} }
+        token = response.access;
+        userData = response.user;
+      } else {
+        console.error("Unexpected response format:", response);
+        setError("Unexpected login response format. Please try again.");
+        return;
+      }
+
+      if (!token) {
+        console.error("No token in response:", response);
+        setError("Login response missing token. Please try again.");
+        return;
+      }
+
+      // Store auth data using context
+      login(userData, token, response.tokens?.refresh);
+
+      console.log("Auth data stored, redirecting...");
+      console.log("Token:", token);
+      console.log("User:", userData);
+
+      // Force a small delay to ensure localStorage is updated
+      setTimeout(() => {
+        router.push("/");
+      }, 100);
+    } catch (err: unknown) {
       console.error("Login error:", err);
-      setError(
-        err.response?.data?.message ||
-          err.response?.data?.error ||
-          "Invalid email or password. Please try again."
-      );
+
+      // Handle Django validation errors
+      if ((err as any).response?.data) {
+        const errorData = (err as any).response.data;
+
+        // Handle field-specific errors
+        if (typeof errorData === "object") {
+          const fieldErrors = Object.entries(errorData)
+            .filter(([key, value]) => Array.isArray(value) && value.length > 0)
+            .map(
+              ([key, value]) =>
+                `${key}: ${Array.isArray(value) ? value[0] : value}`
+            )
+            .join(", ");
+
+          if (fieldErrors) {
+            setError(fieldErrors);
+            return;
+          }
+        }
+
+        // Handle general error messages
+        if (errorData.message) {
+          setError(errorData.message);
+        } else if (errorData.error) {
+          setError(errorData.error);
+        } else if (typeof errorData === "string") {
+          setError(errorData);
+        } else {
+          setError(
+            "Login failed. Please check your credentials and try again."
+          );
+        }
+      } else {
+        setError("Login failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -93,35 +194,51 @@ const LoginPage = () => {
           </p>
         </div>
 
+        {/* Debug Buttons */}
+        <div className="text-center space-x-4">
+          <button
+            onClick={testAPIConnection}
+            className="text-sm text-gray-500 hover:text-gray-700 underline"
+          >
+            Test API Connection
+          </button>
+          <button
+            onClick={debugAuthState}
+            className="text-sm text-gray-500 hover:text-gray-700 underline"
+          >
+            Debug Auth State
+          </button>
+        </div>
+
         {/* Login Form */}
-        <div className="bg-white rounded-xl shadow-large p-8">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 border border-gray-100">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="bg-error-50 border border-error-200 rounded-lg p-4">
-                <div className="flex">
+              <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
+                <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0">
-                    <div className="w-5 h-5 bg-error-400 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">!</span>
+                    <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-bold">!</span>
                     </div>
                   </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-error-700">{error}</p>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-red-800">{error}</p>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Email Field */}
-            <div>
+            <div className="space-y-2">
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-semibold text-secondary-700"
               >
-                Email address
+                Email Address
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiMail className="h-5 w-5 text-gray-400" />
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <FiMail className="h-5 w-5 text-gray-400 group-focus-within:text-primary-500 transition-colors duration-200" />
                 </div>
                 <input
                   id="email"
@@ -131,23 +248,26 @@ const LoginPage = () => {
                   required
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="input-field pl-10"
-                  placeholder="Enter your email"
+                  className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                  placeholder="Enter your email address"
                 />
+                <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
+                  <div className="w-2 h-2 bg-primary-500 rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity duration-200"></div>
+                </div>
               </div>
             </div>
 
             {/* Password Field */}
-            <div>
+            <div className="space-y-2">
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-semibold text-secondary-700"
               >
                 Password
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiLock className="h-5 w-5 text-gray-400" />
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <FiLock className="h-5 w-5 text-gray-400 group-focus-within:text-primary-500 transition-colors duration-200" />
                 </div>
                 <input
                   id="password"
@@ -157,13 +277,13 @@ const LoginPage = () => {
                   required
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="input-field pl-10 pr-12"
+                  className="w-full pl-12 pr-12 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 bg-white shadow-sm hover:shadow-md"
                   placeholder="Enter your password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors duration-200"
                 >
                   {showPassword ? (
                     <FiEyeOff className="h-5 w-5" />
@@ -171,21 +291,24 @@ const LoginPage = () => {
                     <FiEye className="h-5 w-5" />
                   )}
                 </button>
+                <div className="absolute inset-y-0 right-0 pr-12 flex items-center">
+                  <div className="w-2 h-2 bg-primary-500 rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity duration-200"></div>
+                </div>
               </div>
             </div>
 
             {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between pt-2">
               <div className="flex items-center">
                 <input
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                  className="h-5 w-5 text-primary-600 focus:ring-primary-500 border-gray-300 rounded-lg transition-colors duration-200"
                 />
                 <label
                   htmlFor="remember-me"
-                  className="ml-2 block text-sm text-gray-700"
+                  className="ml-3 block text-sm font-medium text-gray-700 hover:text-gray-900 cursor-pointer transition-colors duration-200"
                 >
                   Remember me
                 </label>
@@ -193,9 +316,9 @@ const LoginPage = () => {
               <div className="text-sm">
                 <Link
                   href="/auth/forgot-password"
-                  className="text-primary-600 hover:text-primary-500 transition-colors"
+                  className="text-primary-600 hover:text-primary-700 font-medium transition-colors duration-200 hover:underline"
                 >
-                  Forgot your password?
+                  Forgot password?
                 </Link>
               </div>
             </div>
@@ -204,18 +327,18 @@ const LoginPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-lg"
             >
               {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  <span>Signing in...</span>
-                </>
+                <div className="flex items-center justify-center space-x-3">
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                  <span className="text-lg text-gray-950">Signing in...</span>
+                </div>
               ) : (
-                <>
-                  <span>Sign in</span>
-                  <FiArrowRight className="w-4 h-4" />
-                </>
+                <div className="flex items-center justify-center space-x-3">
+                  <span className="text-lg text-gray-950">Sign in to your account</span>
+                  <FiArrowRight className="w-5 h-5 text-gray-950" />
+                </div>
               )}
             </button>
           </form>
@@ -268,11 +391,11 @@ const LoginPage = () => {
 
         {/* Sign Up Link */}
         <div className="text-center">
-          <p className="text-gray-600">
-            Don't have an account?{" "}
+          <p className="text-gray-700 font-medium">
+            Don&apos;t have an account?{" "}
             <Link
               href="/auth/register"
-              className="text-primary-600 hover:text-primary-500 font-medium transition-colors"
+              className="text-primary-700 hover:text-primary-800 font-semibold transition-colors duration-200 hover:underline"
             >
               Sign up for free
             </Link>

@@ -1,31 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { isAuthenticated } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuth, setIsAuth] = useState(false);
+  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    const checkAuth = () => {
-      const authenticated = isAuthenticated();
-      setIsAuth(authenticated);
-      setIsLoading(false);
-
-      if (!authenticated) {
-        router.push("/auth/login");
-      }
-    };
-
-    checkAuth();
-  }, [router]);
+    if (!isLoading && !isAuthenticated) {
+      console.log(
+        "ProtectedRoute: User not authenticated, redirecting to login"
+      );
+      router.push("/auth/login");
+    } else if (!isLoading && isAuthenticated) {
+      console.log("ProtectedRoute: User authenticated, allowing access");
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   if (isLoading) {
     return (
@@ -38,7 +34,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  if (!isAuth) {
+  if (!isAuthenticated) {
     return null; // Will redirect to login
   }
 

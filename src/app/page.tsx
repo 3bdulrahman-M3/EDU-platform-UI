@@ -89,7 +89,6 @@ const HomePage = () => {
 
             <CourseList
               showSearch={false}
-              showFilters={false}
               title=""
               subtitle=""
             />

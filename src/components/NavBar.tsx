@@ -120,7 +120,10 @@ const NavBar = () => {
   }
 
   return (
-    <nav className="bg-secondary-900 shadow-large sticky top-0 z-50">
+    <nav
+      className="bg-secondary-900 shadow-large sticky top-0 z-50"
+      style={{ backgroundColor: "#fff" }}
+    >
       <div className="container-custom">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -142,7 +145,7 @@ const NavBar = () => {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="flex items-center space-x-1 text-gray-300 hover:text-white transition-colors duration-200 group"
+                    className="flex items-center space-x-1 text-gray-900 hover:text-gray-300 transition-colors duration-200 group"
                   >
                     <Icon className="w-4 h-4 group-hover:text-primary-400 transition-colors duration-200" />
                     <span className="font-medium">{item.name}</span>

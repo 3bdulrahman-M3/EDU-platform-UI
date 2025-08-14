@@ -397,19 +397,135 @@ export const instructorAPI = {
     description: string;
     image?: File;
   }): Promise<Course> => {
-    const formData = new FormData();
-    formData.append("title", courseData.title);
-    formData.append("description", courseData.description);
-    if (courseData.image) {
-      formData.append("image", courseData.image);
-    }
+    try {
+      console.log("=== CREATE COURSE DEBUG ===");
+      console.log("Course data to send:", {
+        title: courseData.title,
+        description: courseData.description,
+        hasImage: !!courseData.image,
+        imageName: courseData.image?.name,
+        imageSize: courseData.image?.size,
+      });
 
-    const response = await api.post("/courses/create/", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    return response.data;
+      // Validate required fields
+      if (!courseData.title?.trim()) {
+        throw new Error("Course title is required");
+      }
+      if (!courseData.description?.trim()) {
+        throw new Error("Course description is required");
+      }
+
+      // Create FormData
+      const formData = new FormData();
+      formData.append("title", courseData.title.trim());
+      formData.append("description", courseData.description.trim());
+
+      // Add image if provided
+      if (courseData.image) {
+        // Validate image file
+        const validTypes = [
+          "image/jpeg",
+          "image/jpg",
+          "image/png",
+          "image/gif",
+        ];
+        const maxSize = 10 * 1024 * 1024; // 10MB
+
+        if (!validTypes.includes(courseData.image.type)) {
+          throw new Error("Invalid image format. Please use PNG, JPG, or GIF.");
+        }
+
+        if (courseData.image.size > maxSize) {
+          throw new Error("Image file is too large. Maximum size is 10MB.");
+        }
+
+        formData.append("image", courseData.image);
+        console.log("Image appended to FormData:", courseData.image.name);
+      }
+
+      console.log("Sending request to:", `${API_BASE_URL}/courses/create/`);
+
+      const response = await api.post("/courses/create/", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      console.log("=== CREATE COURSE SUCCESS ===");
+      console.log("Response status:", response.status);
+      console.log("Response data:", response.data);
+      console.log("=== END CREATE COURSE DEBUG ===");
+
+      return response.data;
+    } catch (error) {
+      console.error("=== CREATE COURSE ERROR ===");
+      console.error("Error creating course:", error);
+
+      // Handle different types of errors
+      if (error instanceof Error) {
+        // Custom validation errors
+        throw error;
+      } else if (error && typeof error === "object" && "response" in error) {
+        const axiosError = error as any;
+        const status = axiosError.response?.status;
+        const data = axiosError.response?.data;
+
+        console.error("Axios error details:", {
+          status,
+          statusText: axiosError.response?.statusText,
+          data,
+          url: axiosError.config?.url,
+        });
+
+        // Handle specific HTTP status codes
+        switch (status) {
+          case 400:
+            if (data?.title) {
+              throw new Error(
+                `Title: ${
+                  Array.isArray(data.title) ? data.title[0] : data.title
+                }`
+              );
+            } else if (data?.description) {
+              throw new Error(
+                `Description: ${
+                  Array.isArray(data.description)
+                    ? data.description[0]
+                    : data.description
+                }`
+              );
+            } else if (data?.image) {
+              throw new Error(
+                `Image: ${
+                  Array.isArray(data.image) ? data.image[0] : data.image
+                }`
+              );
+            } else if (data?.message) {
+              throw new Error(data.message);
+            } else {
+              throw new Error("Invalid course data. Please check your input.");
+            }
+          case 401:
+            throw new Error("Authentication required. Please log in again.");
+          case 403:
+            throw new Error(
+              "Access denied. Only instructors can create courses."
+            );
+          case 413:
+            throw new Error("File too large. Please use a smaller image.");
+          default:
+            throw new Error(
+              data?.message || "Failed to create course. Please try again."
+            );
+        }
+      } else {
+        // Network or other errors
+        console.error("Network error:", error);
+        throw new Error(
+          "Network error. Please check your connection and try again."
+        );
+      }
+    }
   },
 
   // Get all courses created by the instructor - Using existing endpoint

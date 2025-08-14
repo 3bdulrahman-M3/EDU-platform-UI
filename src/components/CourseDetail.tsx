@@ -14,6 +14,7 @@ import {
 } from "react-icons/fi";
 import { coursesAPI } from "@/lib/api";
 import { Course } from "@/types";
+import { getCourseImageUrl } from "@/lib/cloudinary";
 
 const CourseDetail = () => {
   const params = useParams();
@@ -151,10 +152,11 @@ const CourseDetail = () => {
                   <div className="aspect-video bg-gradient-to-br from-primary-100 to-accent-100 relative">
                     {course.image ? (
                       <Image
-                        src={course.image}
+                        src={getCourseImageUrl(course.image, 600, 338)}
                         alt={course.title}
                         fill
                         className="object-cover"
+                        sizes="(max-width: 1024px) 100vw, 50vw"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">

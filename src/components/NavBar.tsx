@@ -15,9 +15,10 @@ import {
   FiLogOut,
   FiPlus,
   FiSearch,
+  FiCalendar,
 } from "react-icons/fi";
 import { useAuth } from "@/contexts/AuthContext";
-import { authAPI } from "@/lib/api";
+import { authAPI } from "@/lib";
 
 const NavBar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -70,6 +71,7 @@ const NavBar = () => {
     const baseItems = [
       { name: "Home", href: "/", icon: FiHome },
       { name: "Courses", href: "/courses", icon: FiBookOpen },
+      { name: "Sessions", href: "/sessions", icon: FiUsers },
     ];
 
     if (user?.role === "instructor") {
@@ -81,12 +83,14 @@ const NavBar = () => {
           href: "/instructor/courses/create",
           icon: FiPlus,
         },
+        { name: "My Sessions", href: "/my-sessions", icon: FiCalendar },
       ];
     } else if (user?.role === "student") {
       return [
         ...baseItems,
         { name: "Dashboard", href: "/student", icon: FiUser },
         { name: "My Courses", href: "/student", icon: FiBookOpen },
+        { name: "My Sessions", href: "/my-sessions", icon: FiCalendar },
       ];
     }
 

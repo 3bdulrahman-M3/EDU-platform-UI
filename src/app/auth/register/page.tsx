@@ -15,7 +15,7 @@ import {
   FiUserCheck,
   FiUsers,
 } from "react-icons/fi";
-import { authAPI } from "@/lib/api";
+import { authAPI } from "@/lib";
 import { useAuth } from "@/contexts/AuthContext";
 import { handleGoogleLogin, testGoogleToken } from "@/lib/googleAuth";
 

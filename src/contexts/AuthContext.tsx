@@ -9,12 +9,14 @@ import React, {
 } from "react";
 import { User } from "@/types";
 import {
-  isAuthenticated,
-  getUser,
-  setUser as setUserStorage,
+  authAPI,
   setAuthToken,
   setRefreshToken,
-} from "@/lib/api";
+  setUser,
+  getUser,
+  getAuthToken,
+  isAuthenticated,
+} from "@/lib";
 import { secureStorage } from "@/lib/security";
 
 interface AuthContextType {
@@ -73,7 +75,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (refreshToken) {
         setRefreshToken(refreshToken);
       }
-      setUserStorage(userData);
+      setUser(userData);
 
       // Update state
       setUser(userData);
@@ -96,7 +98,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Clear from state
       setUser(null);
       setIsAuth(false);
-      
+
       console.log("Auth state cleared");
     } catch (error) {
       console.error("Error during logout:", error);
@@ -107,7 +109,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const updateUser = (userData: User) => {
-    setUserStorage(userData);
     setUser(userData);
   };
 

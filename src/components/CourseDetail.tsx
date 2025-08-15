@@ -12,7 +12,7 @@ import {
   FiShare2,
   FiHeart,
 } from "react-icons/fi";
-import { coursesAPI } from "@/lib/api";
+import { coursesAPI } from "@/lib";
 import { Course } from "@/types";
 import { getCourseImageUrl } from "@/lib/cloudinary";
 

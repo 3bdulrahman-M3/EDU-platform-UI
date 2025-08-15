@@ -1,14 +1,12 @@
 // User types
 export interface User {
   id: number;
-  email: string;
   first_name: string;
   last_name: string;
+  email: string;
   username: string;
-  role: "instructor" | "student";
+  role: "student" | "instructor" | "admin";
   date_joined: string;
-  google_id?: string;
-  picture?: string;
 }
 
 // Course types
@@ -16,12 +14,14 @@ export interface Course {
   id: number;
   title: string;
   description: string;
-  image?: string | null;
-  instructor?: User;
-  student_count?: number;
-  enrollment_count?: number;
-  created_at?: string;
-  updated_at?: string;
+  instructor: User;
+  price: number;
+  duration: number;
+  level: "beginner" | "intermediate" | "advanced";
+  category: string;
+  image: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // Enrollment types
@@ -30,8 +30,33 @@ export interface Enrollment {
   student: User;
   course: Course;
   enrolled_at: string;
-  withdrawn_at?: string | null;
-  is_active?: boolean;
+  is_active: boolean;
+  withdrawn_at?: string;
+}
+
+export interface Session {
+  id: number;
+  title: string;
+  description: string;
+  date: string;
+  max_participants: number;
+  creator: User;
+  participants: Participant[];
+  status: "upcoming" | "ongoing" | "completed" | "cancelled";
+  created_at: string;
+  updated_at: string;
+  // Additional properties from API response
+  is_full?: boolean;
+  available_spots?: number;
+  can_join?: boolean;
+  participant_count?: number;
+}
+
+export interface Participant {
+  id: number;
+  user: User;
+  joined_at: string;
+  role: "student" | "tutor";
 }
 
 // Auth types

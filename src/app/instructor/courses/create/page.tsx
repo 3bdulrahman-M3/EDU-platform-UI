@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { FiUpload, FiArrowLeft } from "react-icons/fi";
 import RoleBasedRoute from "@/components/RoleBasedRoute";
-import { instructorAPI } from "@/lib/api";
+import { instructorAPI } from "@/lib";
 import Link from "next/link";
 
 const CreateCourse = () => {

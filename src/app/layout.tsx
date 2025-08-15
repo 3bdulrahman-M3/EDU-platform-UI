@@ -4,6 +4,7 @@ import "./globals.css";
 import NavBar from "@/components/NavBar";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { debugGoogleConfig } from "@/lib/googleAuth";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,14 +26,26 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+ 
+  // Debug: Check if client ID is loaded
+  if (!googleClientId) {
+    console.error(
+      "❌ Google Client ID is missing! Please check your .env.local file"
+    );
+  } else {
+    console.log("✅ Google Client ID loaded successfully");
+  }
+
+  // Debug Google OAuth configuration
+  debugGoogleConfig();
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <GoogleOAuthProvider
-          clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""}
-        >
+        <GoogleOAuthProvider clientId={googleClientId || ""}>
           <AuthProvider>
             <NavBar />
             {children}

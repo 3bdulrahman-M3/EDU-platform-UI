@@ -19,6 +19,7 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "@/contexts/AuthContext";
 import { authAPI } from "@/lib";
+import NotificationDropdown from "./NotificationDropdown";
 
 const NavBar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -36,20 +37,19 @@ const NavBar = () => {
     try {
       setIsLoggingOut(true);
 
-      // Call API logout to invalidate tokens on backend
-      await authAPI.logout();
-
-      // Clear local auth state
+      // Clear local auth state first to prevent any API calls with invalid tokens
       logout();
 
-      // Close modal and redirect
+      // Close modal and redirect immediately
       setShowLogoutModal(false);
       router.push("/");
 
-      console.log("Logout completed successfully");
+      // Try to call API logout in the background (don't wait for it)
+      authAPI.logout().catch(() => {
+        // Silently ignore logout API errors
+      });
     } catch (error) {
-      console.error("Logout error:", error);
-      // Even if API logout fails, clear local state for security
+      // Even if there's an error, ensure logout is completed
       logout();
       setShowLogoutModal(false);
       router.push("/");
@@ -163,6 +163,7 @@ const NavBar = () => {
           <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
+                <NotificationDropdown />
                 <div className="flex items-center space-x-2 text-gray-300">
                   <FiUser className="w-4 h-4" />
                   <span className="font-medium">
@@ -233,12 +234,17 @@ const NavBar = () => {
               <div className="border-t border-secondary-700 pt-2 mt-2">
                 {isAuthenticated ? (
                   <div className="space-y-2">
-                    <div className="flex items-center space-x-2 px-3 py-2 text-gray-300">
-                      <FiUser className="w-4 h-4" />
-                      <span>{user?.first_name || user?.username}</span>
-                      <span className="text-xs bg-primary-600 text-white px-2 py-1 rounded-full">
-                        {user?.role}
-                      </span>
+                    <div className="flex items-center justify-between px-3 py-2">
+                      <div className="flex items-center space-x-2 text-gray-300">
+                        <FiUser className="w-4 h-4" />
+                        <span>{user?.first_name || user?.username}</span>
+                        <span className="text-xs bg-primary-600 text-white px-2 py-1 rounded-full">
+                          {user?.role}
+                        </span>
+                      </div>
+                      <div className="md:hidden">
+                        <NotificationDropdown />
+                      </div>
                     </div>
                     <button
                       onClick={() => {

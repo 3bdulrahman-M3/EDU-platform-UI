@@ -266,18 +266,7 @@ export const authAPI = {
       throw new Error("Too many login attempts. Please try again later.");
     }
 
-    console.log("=== LOGIN API DEBUG ===");
-    console.log("Sending login credentials:", { email: credentials.email });
-    console.log("=========================");
-
     const response = await api.post("/auth/login/", credentials);
-
-    console.log("=== LOGIN RESPONSE DEBUG ===");
-    console.log("Full response:", response);
-    console.log("Response data:", response.data);
-    console.log("User data in response:", response.data.user);
-    console.log("User role in response:", response.data.user?.role);
-    console.log("===========================");
 
     // Reset rate limiter on successful login
     authRateLimiter.reset(`login_${credentials.email}`);
@@ -289,7 +278,6 @@ export const authAPI = {
     try {
       // Call backend logout endpoint to invalidate tokens
       await api.post("/auth/logout/");
-      console.log("Backend logout successful");
     } catch (error) {
       console.warn("Backend logout failed, but clearing local data:", error);
       // Even if backend fails, we should clear local data for security
@@ -299,19 +287,23 @@ export const authAPI = {
       secureStorage.removeItem("authToken");
       secureStorage.removeItem("user");
       secureStorage.removeItem("refreshToken");
-      console.log("Local storage cleared");
     }
   },
 
   getCurrentUser: async (): Promise<User> => {
     try {
-      // Try the API endpoint first
+      // First check if we have user data in localStorage
+      const { getCurrentUserFromStorage } = await import("./apiUtils");
+      const localUser = getCurrentUserFromStorage();
+
+      if (localUser) {
+        return localUser;
+      }
+
+      // Only try API endpoint if no local data
       const response = await api.get("/auth/user/");
       return response.data;
     } catch (error) {
-      console.warn(
-        "API endpoint /auth/user/ not available, using localStorage"
-      );
       // Fallback to localStorage
       const { getCurrentUserFromStorage } = await import("./apiUtils");
       const user = getCurrentUserFromStorage();

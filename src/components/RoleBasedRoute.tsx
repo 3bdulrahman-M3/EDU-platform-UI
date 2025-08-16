@@ -25,7 +25,14 @@ const RoleBasedRoute = ({ children, allowedRoles }: RoleBasedRouteProps) => {
 
     // Check if user has the required role
     if (user && !allowedRoles.includes(user.role)) {
-      router.push("/unauthorized");
+      // Redirect to appropriate dashboard based on user's role
+      if (user.role === "instructor") {
+        router.push("/instructor");
+      } else if (user.role === "student") {
+        router.push("/student");
+      } else {
+        router.push("/auth/login");
+      }
       return;
     }
   }, [isAuthenticated, isLoading, user, allowedRoles, router]);

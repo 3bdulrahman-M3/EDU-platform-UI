@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { FiBookOpen, FiArrowRight, FiUser, FiUsers } from "react-icons/fi";
-import { authAPI } from "@/lib/api";
+import { authAPI } from "@/lib";
 import { useAuth } from "@/contexts/AuthContext";
 
 const GoogleRoleSelectionPage = () => {

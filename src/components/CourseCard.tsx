@@ -11,7 +11,7 @@ import {
   FiUserX,
 } from "react-icons/fi";
 import { Course, User } from "@/types";
-import { studentAPI } from "@/lib/api";
+import { studentAPI } from "@/lib";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCourseImageUrl } from "@/lib/cloudinary";
 
@@ -22,6 +22,9 @@ interface CourseCardProps {
   isInstructor?: boolean;
   onAction?: () => void;
   showActions?: boolean;
+  isWithdrawn?: boolean;
+  enrollmentDate?: string;
+  withdrawalDate?: string;
 }
 
 const CourseCard = ({
@@ -31,6 +34,9 @@ const CourseCard = ({
   isInstructor = false,
   onAction,
   showActions = true,
+  isWithdrawn = false,
+  enrollmentDate,
+  withdrawalDate,
 }: CourseCardProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [enrollmentStatus, setEnrollmentStatus] = useState(isEnrolled);
@@ -66,6 +72,14 @@ const CourseCard = ({
     }
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   const renderActionButton = () => {
     if (!showActions || !user) return null;
 
@@ -84,6 +98,35 @@ const CourseCard = ({
     }
 
     if (user.role === "student") {
+      if (isWithdrawn) {
+        return (
+          <div className="flex flex-col space-y-2">
+            <span className="px-2 py-1 bg-red-100 text-red-600 text-xs font-medium rounded-full text-center">
+              Withdrawn
+            </span>
+            <button
+              onClick={onAction}
+              disabled={isLoading}
+              className="w-full btn-primary flex items-center justify-center space-x-2"
+            >
+              {isLoading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+              ) : (
+                <FiUserCheck className="w-4 h-4" />
+              )}
+              <span>{isLoading ? "Re-enrolling..." : "Re-enroll"}</span>
+            </button>
+            <Link
+              href={`/courses/${course.id}`}
+              className="w-full btn-outline flex items-center justify-center space-x-2"
+            >
+              <span>View Course</span>
+              <FiArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        );
+      }
+
       if (enrollmentStatus) {
         return (
           <button
@@ -133,7 +176,7 @@ const CourseCard = ({
     <div
       className={`card group hover:shadow-large transition-all duration-300 ${className} ${
         enrollmentStatus ? "ring-2 ring-primary-200" : ""
-      }`}
+      } ${isWithdrawn ? "opacity-75 bg-gray-50" : ""}`}
     >
       {/* Course Image */}
       <div className="relative overflow-hidden rounded-lg mb-4">
@@ -156,9 +199,14 @@ const CourseCard = ({
         </div>
 
         {/* Enrollment Status Badge */}
-        {enrollmentStatus && (
+        {enrollmentStatus && !isWithdrawn && (
           <div className="absolute top-2 right-2 bg-primary-600 text-white px-2 py-1 rounded-full text-xs font-medium">
             Enrolled
+          </div>
+        )}
+        {isWithdrawn && (
+          <div className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded-full text-xs font-medium">
+            Withdrawn
           </div>
         )}
       </div>
@@ -174,6 +222,24 @@ const CourseCard = ({
         <p className="text-gray-600 text-sm line-clamp-3 leading-relaxed">
           {course.description}
         </p>
+
+        {/* Enrollment/Withdrawal Dates */}
+        {(enrollmentDate || withdrawalDate) && (
+          <div className="text-xs text-gray-500 space-y-1">
+            {enrollmentDate && (
+              <div className="flex items-center space-x-1">
+                <FiUserCheck className="w-3 h-3" />
+                <span>Enrolled: {formatDate(enrollmentDate)}</span>
+              </div>
+            )}
+            {withdrawalDate && (
+              <div className="flex items-center space-x-1">
+                <FiUserX className="w-3 h-3" />
+                <span>Withdrawn: {formatDate(withdrawalDate)}</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Action Button */}

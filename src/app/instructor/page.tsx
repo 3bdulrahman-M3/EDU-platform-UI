@@ -11,7 +11,7 @@ import {
   FiEye,
 } from "react-icons/fi";
 import RoleBasedRoute from "@/components/RoleBasedRoute";
-import { instructorAPI } from "@/lib/api";
+import { instructorAPI } from "@/lib";
 import { Course } from "@/types";
 import CourseCard from "@/components/CourseCard";
 import { useAuth } from "@/contexts/AuthContext";

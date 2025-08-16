@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { FiSearch, FiBookOpen, FiPlus } from "react-icons/fi";
-import { coursesAPI, studentAPI } from "@/lib/api";
+import { coursesAPI, studentAPI } from "@/lib";
 import { Course, Enrollment } from "@/types";
 import CourseCard from "@/components/CourseCard";
 import { useAuth } from "@/contexts/AuthContext";

@@ -12,7 +12,7 @@ import {
   FiBookOpen,
   FiArrowRight,
 } from "react-icons/fi";
-import { authAPI } from "@/lib/api";
+import { authAPI } from "@/lib";
 import { useAuth } from "@/contexts/AuthContext";
 import { handleGoogleLogin } from "@/lib/googleAuth";
 
@@ -207,8 +207,40 @@ const LoginPage = () => {
       console.log("Token:", token);
       console.log("User:", userData);
 
+      // Check localStorage immediately after login
+      console.log("=== IMMEDIATE STORAGE CHECK ===");
+      console.log(
+        "Auth token:",
+        localStorage.getItem("authToken") ? "exists" : "null"
+      );
+      console.log(
+        "User data:",
+        localStorage.getItem("user") ? "exists" : "null"
+      );
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          console.log("User role:", user.role);
+          console.log("User ID:", user.id);
+        } catch (error) {
+          console.log("Error parsing user data:", error);
+        }
+      }
+      console.log("==============================");
+
       // Force a small delay to ensure localStorage is updated
       setTimeout(() => {
+        console.log("=== BEFORE REDIRECT CHECK ===");
+        console.log(
+          "Auth token:",
+          localStorage.getItem("authToken") ? "exists" : "null"
+        );
+        console.log(
+          "User data:",
+          localStorage.getItem("user") ? "exists" : "null"
+        );
+        console.log("=============================");
         router.push("/");
       }, 100);
     } catch (err: unknown) {

@@ -1,7 +1,10 @@
 // Google OAuth Configuration
 export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 export const GOOGLE_REDIRECT_URI =
-  process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI || "http://localhost:3001";
+  process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI ||
+  (typeof window !== "undefined"
+    ? window.location.origin
+    : "http://localhost:3000");
 
 // Google OAuth helper functions
 export const googleAuthConfig = {
@@ -15,6 +18,10 @@ export const debugGoogleConfig = () => {
   console.log("=== GOOGLE OAUTH CONFIG DEBUG ===");
   console.log("Client ID:", GOOGLE_CLIENT_ID ? "✅ Set" : "❌ Missing");
   console.log("Redirect URI:", GOOGLE_REDIRECT_URI);
+  console.log(
+    "Current Origin:",
+    typeof window !== "undefined" ? window.location.origin : "Server-side"
+  );
   console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
   console.log("================================");
 };

@@ -19,49 +19,44 @@ const HomePage = () => {
   const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated && user) {
-      console.log("=== ROLE REDIRECT DEBUG ===");
-      console.log("User:", user);
-      console.log("User role:", user.role);
-      console.log("Is authenticated:", isAuthenticated);
-      console.log("==========================");
-
-      // Only redirect if user has a valid role
-      if (user.role === "instructor" || user.role === "student") {
+    if (!isLoading) {
+      if (isAuthenticated && user) {
+        // User is authenticated and has valid data, redirect to appropriate dashboard
+        if (user.role === "instructor" || user.role === "student") {
+          setRedirecting(true);
+          setTimeout(() => {
+            if (user.role === "instructor") {
+              router.push("/instructor");
+            } else if (user.role === "student") {
+              router.push("/student");
+            }
+          }, 500);
+        }
+      } else if (!isAuthenticated) {
+        // User is not authenticated, redirect to login page
         setRedirecting(true);
-
-        // Add a small delay to ensure all data is loaded
         setTimeout(() => {
-          if (user.role === "instructor") {
-            console.log("Redirecting to instructor dashboard...");
-            router.push("/instructor");
-          } else if (user.role === "student") {
-            console.log("Redirecting to student dashboard...");
-            router.push("/student");
-          }
+          router.push("/auth/login");
         }, 500);
-      } else {
-        console.warn("User has no role or invalid role, staying on home page");
-        setRedirecting(false);
       }
     }
   }, [isAuthenticated, user, isLoading, router]);
 
-  // Show loading state while checking authentication
+  // Show loading state while checking authentication or redirecting
   if (isLoading || redirecting) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-secondary-50 to-primary-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent mx-auto mb-4"></div>
           <p className="text-gray-600">
-            {redirecting ? "Redirecting to your dashboard..." : "Loading..."}
+            {redirecting ? "Redirecting..." : "Loading..."}
           </p>
         </div>
       </div>
     );
   }
 
-  // Show landing page for non-authenticated users
+  // Show landing page for non-authenticated users (this should rarely be reached now)
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-secondary-50 to-primary-50">

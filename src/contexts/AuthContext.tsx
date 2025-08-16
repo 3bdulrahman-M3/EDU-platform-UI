@@ -9,12 +9,14 @@ import React, {
 } from "react";
 import { User } from "@/types";
 import {
-  isAuthenticated,
-  getUser,
-  setUser as setUserStorage,
+  authAPI,
   setAuthToken,
   setRefreshToken,
-} from "@/lib/api";
+  setUser as setUserToStorage,
+  getUser,
+  getAuthToken,
+  isAuthenticated,
+} from "@/lib";
 import { secureStorage } from "@/lib/security";
 
 interface AuthContextType {
@@ -47,13 +49,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Initialize auth state on mount
   useEffect(() => {
-    const initializeAuth = () => {
+    const initializeAuth = async () => {
       try {
-        const authenticated = isAuthenticated();
+        const token = getAuthToken();
         const currentUser = getUser();
 
-        setIsAuth(authenticated);
-        setUser(currentUser);
+        // If we have both token and user data, try to validate the session
+        if (token && currentUser) {
+          try {
+            // Try to get current user from API to validate token
+            const response = await authAPI.getCurrentUser();
+            if (response) {
+              // Token is valid, update user data and set authenticated
+              setUser(response);
+              setIsAuth(true);
+            } else {
+              // Token is invalid, clear everything
+              logout();
+            }
+          } catch (error) {
+            // API call failed, token might be expired
+            logout();
+          }
+        } else {
+          // No token or user data, ensure clean state
+          setIsAuth(false);
+          setUser(null);
+        }
       } catch (error) {
         console.error("Error initializing auth:", error);
         setIsAuth(false);
@@ -73,13 +95,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (refreshToken) {
         setRefreshToken(refreshToken);
       }
-      setUserStorage(userData);
+      setUserToStorage(userData);
 
-      // Update state
+      // Update React state
       setUser(userData);
       setIsAuth(true);
-
-      console.log("Auth state updated:", { user: userData, isAuth: true });
     } catch (error) {
       console.error("Error during login:", error);
       throw error;
@@ -93,21 +113,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       secureStorage.removeItem("refreshToken");
       secureStorage.removeItem("user");
 
-      // Clear from state
+      // Clear from state immediately
       setUser(null);
       setIsAuth(false);
-      
-      console.log("Auth state cleared");
     } catch (error) {
       console.error("Error during logout:", error);
-      // Even if there's an error, try to clear state
+      // Even if there's an error, ensure state is cleared
       setUser(null);
       setIsAuth(false);
     }
   };
 
   const updateUser = (userData: User) => {
-    setUserStorage(userData);
     setUser(userData);
   };
 

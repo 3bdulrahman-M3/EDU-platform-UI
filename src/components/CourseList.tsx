@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { FiSearch, FiGrid, FiList, FiX } from "react-icons/fi";
-import { coursesAPI } from "@/lib/api";
+import { coursesAPI } from "@/lib";
 import { Course } from "@/types";
 import CourseCard from "./CourseCard";
 

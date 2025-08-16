@@ -3,88 +3,79 @@ import { FiUser } from "react-icons/fi";
 
 interface ParticipantListProps {
   participants: Participant[];
-  maxParticipants?: number;
+  maxDisplay?: number;
+  showCount?: boolean;
 }
 
 const ParticipantList = ({
   participants,
-  maxParticipants,
+  maxDisplay = 5,
+  showCount = true,
 }: ParticipantListProps) => {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-  };
+  const displayedParticipants = participants.slice(0, maxDisplay);
+  const remainingCount = participants.length - maxDisplay;
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
-  const getRoleColor = (role: string) => {
-    return role === "tutor" ? "bg-purple-500" : "bg-blue-500";
+  const getAvatarColor = (name: string) => {
+    const colors = [
+      "bg-blue-500",
+      "bg-green-500",
+      "bg-purple-500",
+      "bg-pink-500",
+      "bg-indigo-500",
+      "bg-yellow-500",
+      "bg-red-500",
+      "bg-teal-500",
+    ];
+
+    const index = name.charCodeAt(0) % colors.length;
+    return colors[index];
   };
 
+  if (participants.length === 0) {
+    return <div className="text-sm text-gray-500">No participants yet</div>;
+  }
+
   return (
-    <div className="space-y-3">
-      <h3 className="text-sm font-medium text-gray-900">
-        Participants ({participants.length}
-        {maxParticipants && `/${maxParticipants}`})
-      </h3>
+    <div className="flex items-center space-x-2">
+      <div className="flex -space-x-2">
+        {displayedParticipants.map((participant, index) => (
+          <div
+            key={participant.id}
+            className={`
+              relative inline-flex items-center justify-center w-8 h-8 rounded-full border-2 border-white
+              ${getAvatarColor(
+                participant.user.first_name + participant.user.last_name
+              )}
+              text-white text-xs font-medium
+            `}
+            title={`${participant.user.first_name} ${participant.user.last_name} (${participant.role})`}
+          >
+            {getInitials(
+              participant.user.first_name,
+              participant.user.last_name
+            )}
+            {participant.status === "pending" && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 border-2 border-white rounded-full"></div>
+            )}
+          </div>
+        ))}
 
-      {participants.length === 0 ? (
-        <p className="text-sm text-gray-500">No participants yet</p>
-      ) : (
-        <div className="space-y-2">
-          {participants.map((participant) => (
-            <div
-              key={participant.id}
-              className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50"
-            >
-              {/* Avatar */}
-              <div className="relative">
-                <div
-                  className={`w-8 h-8 rounded-full ${getRoleColor(
-                    participant.role
-                  )} flex items-center justify-center text-white text-sm font-medium`}
-                >
-                  {getInitials(
-                    participant.user.first_name,
-                    participant.user.last_name
-                  )}
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-white rounded-full border-2 border-gray-200">
-                  <div
-                    className={`w-full h-full rounded-full ${getRoleColor(
-                      participant.role
-                    )}`}
-                  ></div>
-                </div>
-              </div>
+        {remainingCount > 0 && (
+          <div className="relative inline-flex items-center justify-center w-8 h-8 rounded-full border-2 border-white bg-gray-300 text-gray-600 text-xs font-medium">
+            +{remainingCount}
+          </div>
+        )}
+      </div>
 
-              {/* Participant Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center space-x-2">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {participant.user.first_name} {participant.user.last_name}
-                  </p>
-                  <span
-                    className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                      participant.role === "tutor"
-                        ? "bg-purple-100 text-purple-800"
-                        : "bg-blue-100 text-blue-800"
-                    }`}
-                  >
-                    {participant.role}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500">
-                  Joined {formatDate(participant.joined_at)}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
+      {showCount && (
+        <span className="text-sm text-gray-600">
+          {participants.length} participant
+          {participants.length !== 1 ? "s" : ""}
+        </span>
       )}
     </div>
   );

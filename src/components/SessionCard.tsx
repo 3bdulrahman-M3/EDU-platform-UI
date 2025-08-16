@@ -12,6 +12,13 @@ import {
 import { Session } from "@/types";
 import StatusBadge from "./StatusBadge";
 import { sessionAPI } from "@/lib/sessionAPI";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  utcToLocal,
+  formatDateForDisplay,
+  formatTimeForDisplay,
+  getCurrentTimezone,
+} from "@/lib/timezoneUtils";
 
 interface SessionCardProps {
   session: Session;
@@ -26,21 +33,16 @@ const SessionCard = ({
 }: SessionCardProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      weekday: "short",
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    const localDate = utcToLocal(dateString);
+    return formatDateForDisplay(localDate);
   };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const localDate = utcToLocal(dateString);
+    return formatTimeForDisplay(localDate);
   };
 
   const handleJoinSession = async () => {
@@ -50,10 +52,87 @@ const SessionCard = ({
     setError(null);
 
     try {
+      console.log("=== SESSION CARD DEBUG ===");
+      console.log("Session ID:", session.id);
+      console.log("Session status:", session.status);
+      console.log("Session creator:", session.creator);
+      console.log("Current user:", user);
+      console.log("Is creator:", isCreator);
+      console.log("Is joined:", isJoined);
+      console.log("Has pending request:", hasPendingRequest);
+      console.log("Has approved request:", hasApprovedRequest);
+      console.log("Has rejected request:", hasRejectedRequest);
+      console.log("Can join:", canJoin);
+      console.log("Is full:", isFull);
+      console.log("Booking requests:", session.booking_requests);
+
       await sessionAPI.joinSession(session.id);
+      console.log("✅ Successfully joined session");
       onAction?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to join session");
+      console.error("❌ Error joining session:", err);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else if (typeof err === "object" && err !== null && "response" in err) {
+        const response = (
+          err as { response?: { status?: number; data?: unknown } }
+        ).response;
+        console.log("Response status:", response?.status);
+        console.log("Response data:", response?.data);
+
+        if (response?.status === 400) {
+          const responseData = response.data as
+            | { message?: string; detail?: string; error?: string }
+            | string
+            | undefined;
+
+          let errorMessage = "Invalid request data";
+
+          if (typeof responseData === "string") {
+            errorMessage = responseData;
+          } else if (responseData?.message) {
+            errorMessage = responseData.message;
+          } else if (responseData?.detail) {
+            errorMessage = responseData.detail;
+          } else if (responseData?.error) {
+            errorMessage = responseData.error;
+          }
+
+          // Handle specific backend error messages
+          if (errorMessage.includes("Session is full")) {
+            setError(
+              "This session is full and cannot accept more participants"
+            );
+          } else if (errorMessage.includes("Already joined")) {
+            setError("You are already a participant in this session");
+          } else if (errorMessage.includes("Booking request already pending")) {
+            setError("You already have a pending request to join this session");
+          } else if (
+            errorMessage.includes("Booking request already approved")
+          ) {
+            setError("Your request to join this session was already approved");
+          } else if (errorMessage.includes("Booking request was rejected")) {
+            setError("Your request to join this session was rejected");
+          } else {
+            setError(errorMessage);
+          }
+        } else if (response?.status === 401) {
+          setError("You must be logged in to join sessions");
+        } else if (response?.status === 403) {
+          setError("You do not have permission to join this session");
+        } else if (response?.status === 404) {
+          setError("Session not found");
+        } else {
+          const responseData = response?.data as
+            | { message?: string }
+            | undefined;
+          setError(
+            `Server error: ${responseData?.message || "Unknown error occurred"}`
+          );
+        }
+      } else {
+        setError("Failed to join session");
+      }
       setTimeout(() => setError(null), 5000);
     } finally {
       setIsLoading(false);
@@ -61,8 +140,21 @@ const SessionCard = ({
   };
 
   // Use API response properties if available, otherwise fallback to calculated values
-  const isJoined = session.participants?.some((p) => p.user.id === 1) || false; // TODO: Get current user ID from auth context
-  const isCreator = session.creator?.id === 1; // TODO: Get current user ID from auth context
+  const isJoined =
+    session.participants?.some((p) => p.user.id === user?.id) || false;
+  const isCreator = session.creator?.id === user?.id;
+  const hasPendingRequest =
+    session.booking_requests?.some(
+      (r) => r.user.id === user?.id && r.status === "pending"
+    ) || false;
+  const hasApprovedRequest =
+    session.booking_requests?.some(
+      (r) => r.user.id === user?.id && r.status === "approved"
+    ) || false;
+  const hasRejectedRequest =
+    session.booking_requests?.some(
+      (r) => r.user.id === user?.id && r.status === "rejected"
+    ) || false;
   const isFull =
     session.is_full ||
     (session.participants &&
@@ -70,7 +162,7 @@ const SessionCard = ({
   const canJoin =
     session.can_join !== undefined
       ? session.can_join
-      : !isJoined && !isFull && session.status === "upcoming";
+      : !isJoined && !isFull && session.status === "scheduled";
   const participantCount =
     session.participant_count ||
     (session.participants ? session.participants.length : 0);
@@ -103,6 +195,7 @@ const SessionCard = ({
             <FiClock className="w-4 h-4 mr-2" />
             <span>{formatTime(session.date)}</span>
           </div>
+
           <div className="flex items-center text-sm text-gray-600">
             <FiUser className="w-4 h-4 mr-2" />
             <span>
@@ -133,38 +226,40 @@ const SessionCard = ({
         {showActions && (
           <div className="flex items-center justify-between pt-4 border-t border-gray-100">
             <div className="flex items-center space-x-2">
-              {canJoin && (
+              {isCreator ? (
+                <Link
+                  href={`/sessions/${session.id}`}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  Manage Session
+                </Link>
+              ) : isJoined ? (
+                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
+                  Joined
+                </span>
+              ) : hasPendingRequest ? (
+                <span className="px-3 py-1 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-full">
+                  Request Pending
+                </span>
+              ) : hasApprovedRequest ? (
+                <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+                  Request Approved
+                </span>
+              ) : hasRejectedRequest ? (
+                <span className="px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-full">
+                  Request Rejected
+                </span>
+              ) : canJoin ? (
                 <button
                   onClick={handleJoinSession}
                   disabled={isLoading}
                   className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? "Joining..." : "Join Session"}
+                  {isLoading ? "Requesting..." : "Request to Join"}
                 </button>
-              )}
-              {isJoined && (
-                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
-                  Joined
-                </span>
-              )}
-              {isFull && !isJoined && (
+              ) : (
                 <span className="px-3 py-1 bg-gray-100 text-gray-600 text-sm font-medium rounded-full">
-                  Full
-                </span>
-              )}
-              {session.status === "ongoing" && (
-                <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">
-                  In Progress
-                </span>
-              )}
-              {session.status === "completed" && (
-                <span className="px-3 py-1 bg-gray-100 text-gray-600 text-sm font-medium rounded-full">
-                  Completed
-                </span>
-              )}
-              {session.status === "cancelled" && (
-                <span className="px-3 py-1 bg-red-100 text-red-600 text-sm font-medium rounded-full">
-                  Cancelled
+                  {isFull ? "Session Full" : "Cannot Join"}
                 </span>
               )}
             </div>

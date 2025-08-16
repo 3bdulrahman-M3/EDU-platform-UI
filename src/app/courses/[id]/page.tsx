@@ -4,7 +4,7 @@ import CourseDetail from "@/components/CourseDetail";
 const CourseDetailPage = () => {
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gradient-to-br from-secondary-50 to-primary-50">
+      <div className="min-h-screen" style={{ backgroundColor: "var(--color-gray-900)" }}>
         <div className="container-custom py-12">
           <CourseDetail />
         </div>

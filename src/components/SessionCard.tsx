@@ -170,15 +170,15 @@ const SessionCard = ({
     session.available_spots || session.max_participants - participantCount;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
+    <div className="bg-secondary-900 rounded-lg shadow-sm border border-gray-800 hover:shadow-md transition-shadow duration-200">
       <div className="p-6">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-lg font-semibold text-gray-100 mb-2">
               {session.title}
             </h3>
-            <p className="text-gray-600 text-sm line-clamp-2">
+            <p className="text-gray-400 text-sm line-clamp-2">
               {session.description}
             </p>
           </div>
@@ -187,22 +187,22 @@ const SessionCard = ({
 
         {/* Session Details */}
         <div className="space-y-3 mb-4">
-          <div className="flex items-center text-sm text-gray-600">
+          <div className="flex items-center text-sm text-gray-400">
             <FiCalendar className="w-4 h-4 mr-2" />
             <span>{formatDate(session.date)}</span>
           </div>
-          <div className="flex items-center text-sm text-gray-600">
+          <div className="flex items-center text-sm text-gray-400">
             <FiClock className="w-4 h-4 mr-2" />
             <span>{formatTime(session.date)}</span>
           </div>
 
-          <div className="flex items-center text-sm text-gray-600">
+          <div className="flex items-center text-sm text-gray-400">
             <FiUser className="w-4 h-4 mr-2" />
             <span>
               by {session.creator?.first_name} {session.creator?.last_name}
             </span>
           </div>
-          <div className="flex items-center text-sm text-gray-600">
+          <div className="flex items-center text-sm text-gray-400">
             <FiUsers className="w-4 h-4 mr-2" />
             <span>
               {participantCount}/{session.max_participants} participants
@@ -217,14 +217,14 @@ const SessionCard = ({
 
         {/* Error Message */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="mb-4 p-3 bg-error-900 border border-error-700 rounded-md">
+            <p className="text-sm text-error-400">{error}</p>
           </div>
         )}
 
         {/* Actions */}
         {showActions && (
-          <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+          <div className="flex items-center justify-between pt-4 border-t border-gray-700">
             <div className="flex items-center space-x-2">
               {isCreator ? (
                 <Link
@@ -234,38 +234,38 @@ const SessionCard = ({
                   Manage Session
                 </Link>
               ) : isJoined ? (
-                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
+                <span className="px-3 py-1 bg-success-900 text-success-400 text-sm font-medium rounded-full">
                   Joined
                 </span>
               ) : hasPendingRequest ? (
-                <span className="px-3 py-1 bg-yellow-100 text-yellow-700 text-sm font-medium rounded-full">
+                <span className="px-3 py-1 bg-warning-900 text-warning-400 text-sm font-medium rounded-full">
                   Request Pending
                 </span>
               ) : hasApprovedRequest ? (
-                <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+                <span className="px-3 py-1 bg-accent-900 text-accent-400 text-sm font-medium rounded-full">
                   Request Approved
                 </span>
               ) : hasRejectedRequest ? (
-                <span className="px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-full">
+                <span className="px-3 py-1 bg-error-900 text-error-400 text-sm font-medium rounded-full">
                   Request Rejected
                 </span>
               ) : canJoin ? (
                 <button
                   onClick={handleJoinSession}
                   disabled={isLoading}
-                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-accent-700 text-white text-sm font-medium rounded-md hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? "Requesting..." : "Request to Join"}
                 </button>
               ) : (
-                <span className="px-3 py-1 bg-gray-100 text-gray-600 text-sm font-medium rounded-full">
+                <span className="px-3 py-1 bg-gray-800 text-gray-400 text-sm font-medium rounded-full">
                   {isFull ? "Session Full" : "Cannot Join"}
                 </span>
               )}
             </div>
             <Link
               href={`/sessions/${session.id}`}
-              className="flex items-center text-blue-600 hover:text-blue-700 text-sm font-medium"
+              className="flex items-center text-accent-500 hover:text-accent-400 text-sm font-medium"
             >
               View Details
               <FiArrowRight className="w-4 h-4 ml-1" />

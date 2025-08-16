@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   FiBookOpen,
   FiCheckCircle,
@@ -11,10 +11,14 @@ import {
   FiDownload,
   FiShare2,
   FiHeart,
+  FiEdit,
+  FiTrash2,
+  FiX,
 } from "react-icons/fi";
 import { coursesAPI } from "@/lib";
 import { Course } from "@/types";
 import { getCourseImageUrl } from "@/lib/cloudinary";
+import { useAuth } from "@/contexts/AuthContext";
 
 const CourseDetail = () => {
   const params = useParams();
@@ -25,6 +29,10 @@ const CourseDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const router = useRouter();
+  const { user } = useAuth();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (courseId) {
@@ -69,9 +77,22 @@ const CourseDetail = () => {
     }
   };
 
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await coursesAPI.deleteCourse(Number(courseId));
+      setShowDeleteModal(false);
+      router.push("/courses");
+    } catch (error) {
+      console.error("Failed to delete course:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12">
+      <div className="min-h-screen py-12" style={{ backgroundColor: "var(--color-gray-900)" }}>
         <div className="container-custom">
           <div className="max-w-4xl mx-auto">
             <div className="animate-pulse space-y-8">
@@ -98,7 +119,7 @@ const CourseDetail = () => {
 
   if (error || !course) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12">
+      <div className="min-h-screen py-12" style={{ backgroundColor: "var(--color-gray-900)" }}>
         <div className="container-custom">
           <div className="max-w-4xl mx-auto text-center">
             <div className="text-red-500 text-lg mb-4">
@@ -114,7 +135,7 @@ const CourseDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen py-12" style={{ backgroundColor: "var(--color-gray-900)" }}>
       <div className="container-custom">
         <div className="max-w-4xl mx-auto">
           {/* Breadcrumb */}
@@ -134,22 +155,40 @@ const CourseDetail = () => {
           </nav>
 
           {/* Course Header */}
-          <div className="bg-white rounded-xl shadow-soft p-8 mb-8">
+          <div className="bg-secondary-900 rounded-xl shadow-soft p-8 mb-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2">
-                <h1 className="text-4xl font-bold text-secondary-900 mb-4 leading-tight">
+                <h1 className="text-4xl font-bold text-gray-100 mb-4 leading-tight">
                   {course.title}
                 </h1>
-
-                <p className="text-lg text-gray-600 mb-6 leading-relaxed">
+                <p className="text-lg text-gray-400 mb-6 leading-relaxed">
                   {course.description}
                 </p>
+                {/* Instructor Actions */}
+                {user?.role === "instructor" && (
+                  <div className="flex space-x-2 mt-2">
+                    <Link
+                      href={`/courses/${course.id}/edit`}
+                      className="btn-outline flex items-center space-x-1 border-accent-500 text-accent-500 hover:bg-accent-900 hover:text-white px-3 py-2 text-sm"
+                    >
+                      <FiEdit className="w-4 h-4" />
+                      <span>Edit</span>
+                    </Link>
+                    <button
+                      onClick={() => setShowDeleteModal(true)}
+                      className="btn-outline flex items-center space-x-1 border-error-700 text-error-700 hover:bg-error-900 hover:text-white px-3 py-2 text-sm"
+                    >
+                      <FiTrash2 className="w-4 h-4" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Course Image */}
               <div className="lg:col-span-1">
                 <div className="relative overflow-hidden rounded-lg">
-                  <div className="aspect-video bg-gradient-to-br from-primary-100 to-accent-100 relative">
+                  <div className="aspect-video relative" style={{ backgroundColor: "var(--color-gray-900)" }}>
                     {course.image ? (
                       <Image
                         src={getCourseImageUrl(course.image, 600, 338)}
@@ -176,7 +215,7 @@ const CourseDetail = () => {
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-8">
               {/* What You'll Learn */}
-              <div className="bg-white rounded-xl shadow-soft p-6">
+              <div className="bg-secondary-900 rounded-xl shadow-soft p-6">
                 <h2 className="text-2xl font-bold text-secondary-900 mb-4">
                   What you'll learn
                 </h2>
@@ -198,7 +237,7 @@ const CourseDetail = () => {
               </div>
 
               {/* Course Description */}
-              <div className="bg-white rounded-xl shadow-soft p-6">
+              <div className="bg-secondary-900 rounded-xl shadow-soft p-6">
                 <h2 className="text-2xl font-bold text-secondary-900 mb-4">
                   Course Description
                 </h2>
@@ -219,7 +258,7 @@ const CourseDetail = () => {
             {/* Sidebar */}
             <div className="lg:col-span-1 space-y-6">
               {/* Enrollment Card */}
-              <div className="bg-white rounded-xl shadow-soft p-6 sticky top-24">
+              <div className="bg-secondary-900 rounded-xl shadow-soft p-6 sticky top-24">
                 <div className="text-center mb-6">
                   <div className="text-3xl font-bold text-primary-600 mb-2">
                     Free
@@ -296,6 +335,53 @@ const CourseDetail = () => {
           </div>
         </div>
       </div>
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-gray-900 opacity-80" onClick={() => setShowDeleteModal(false)} />
+          <div className="relative bg-secondary-900 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <FiX className="w-6 h-6" />
+            </button>
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-error-900 mb-6">
+                <FiTrash2 className="h-8 w-8 text-error-500" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-100 mb-4">Confirm Delete</h3>
+              <p className="text-gray-400 mb-8">Are you sure you want to delete this course? This action cannot be undone.</p>
+              <div className="flex space-x-4">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-3 text-gray-200 bg-gray-800 hover:bg-gray-700 font-medium rounded-xl transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-3 bg-error-700 hover:bg-error-800 text-white font-medium rounded-xl transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                >
+                  {isDeleting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FiTrash2 className="w-4 h-4" />
+                      <span>Delete</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

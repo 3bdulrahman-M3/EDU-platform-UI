@@ -78,11 +78,6 @@ const NavBar = () => {
       return [
         ...baseItems,
         { name: "Dashboard", href: "/instructor", icon: FiUser },
-        {
-          name: "Create Course",
-          href: "/instructor/courses/create",
-          icon: FiPlus,
-        },
         { name: "My Sessions", href: "/my-sessions", icon: FiCalendar },
       ];
     } else if (user?.role === "student") {
@@ -126,7 +121,7 @@ const NavBar = () => {
   return (
     <nav
       className="bg-secondary-900 shadow-large sticky top-0 z-50"
-      style={{ backgroundColor: "#fff" }}
+      style={{ backgroundColor: "#161b22" }}
     >
       <div className="container-custom">
         <div className="flex items-center justify-between h-16">
@@ -149,7 +144,7 @@ const NavBar = () => {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="flex items-center space-x-1 text-gray-900 hover:text-gray-300 transition-colors duration-200 group"
+                    className="flex items-center space-x-1 text-gray-100 hover:text-accent-500 transition-colors duration-200 group"
                   >
                     <Icon className="w-4 h-4 group-hover:text-primary-400 transition-colors duration-200" />
                     <span className="font-medium">{item.name}</span>
@@ -164,7 +159,7 @@ const NavBar = () => {
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
                 <NotificationDropdown />
-                <div className="flex items-center space-x-2 text-gray-300">
+                <div className="flex items-center space-x-2 text-gray-100">
                   <FiUser className="w-4 h-4" />
                   <span className="font-medium">
                     {user?.first_name || user?.username}
@@ -175,7 +170,7 @@ const NavBar = () => {
                 </div>
                 <button
                   onClick={handleLogoutClick}
-                  className="btn-outline text-sm px-4 py-2"
+                  className="btn-outline text-sm px-4 py-2 border-accent-500 text-accent-500 hover:bg-accent-900 hover:text-white"
                 >
                   Logout
                 </button>
@@ -267,7 +262,7 @@ const NavBar = () => {
                     </Link>
                     <Link
                       href="/auth/register"
-                      className="block px-3 py-2 text-primary-400 hover:text-primary-300 hover:bg-secondary-700 rounded-md transition-colors duration-200"
+                      className="block px-3 py-2 text-accent-500 hover:text-accent-400 hover:bg-secondary-700 rounded-md transition-colors duration-200"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Get Started
@@ -285,15 +280,15 @@ const NavBar = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Backdrop */}
           <div
-            className={`absolute inset-0 bg-gray-300 opacity-50 transition-opacity duration-300 ease-in-out ${
-              isModalClosing ? "bg-opacity-0" : "bg-opacity-50"
+            className={`absolute inset-0 bg-gray-900 opacity-80 transition-opacity duration-300 ease-in-out ${
+              isModalClosing ? "bg-opacity-0" : "bg-opacity-80"
             }`}
             onClick={handleLogoutCancel}
           />
 
           {/* Modal */}
           <div
-            className={`relative bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 transform transition-all duration-300 ease-in-out ${
+            className={`relative bg-secondary-900 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 transform transition-all duration-300 ease-in-out ${
               isModalClosing ? "fade-out" : "animate-in fade-in-0 zoom-in-95"
             }`}
           >
@@ -313,12 +308,12 @@ const NavBar = () => {
               </div>
 
               {/* Title */}
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+              <h3 className="text-xl font-semibold text-gray-100 mb-4">
                 Confirm Logout
               </h3>
 
               {/* Message */}
-              <p className="text-gray-600 mb-8">
+              <p className="text-gray-400 mb-8">
                 Are you sure you want to logout? You will need to sign in again
                 to access your account.
               </p>
@@ -328,14 +323,14 @@ const NavBar = () => {
                 <button
                   onClick={handleLogoutCancel}
                   disabled={isLoggingOut}
-                  className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 font-medium rounded-xl transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-3 text-gray-200 bg-gray-800 hover:bg-gray-700 font-medium rounded-xl transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleLogoutConfirm}
                   disabled={isLoggingOut}
-                  className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  className="flex-1 px-4 py-3 bg-error-700 hover:bg-error-800 text-white font-medium rounded-xl transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                 >
                   {isLoggingOut ? (
                     <>
